@@ -1,0 +1,203 @@
+#!/usr/bin/env python
+# -*-coding: utf-8 -*-
+#
+# Copyright 2011 Chris Hastie
+#
+# Inspired by pyCalledMe by olivier@olihb.com
+#
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU Lesser General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+#
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#GNU Lesser General Public License for more details.
+#
+#You should have received a copy of the GNU Lesser General Public License
+#along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+ 
+from twisted.internet import gtk2reactor
+gtk2reactor.install(True)
+ 
+from twisted.internet import reactor
+import gtkPopupNotify, gtk
+from starpy.manager import AMIFactory
+from twisted.internet import task
+import logging,logging.handlers,gnome.ui,sys,os
+from pysqlite2 import dbapi2 as sqlite
+import ConfigParser
+
+appname = 'callpoppy'
+
+config = ConfigParser.RawConfigParser({
+  'port': '5038',
+  'background': '#171717', 
+  'foreground': '#bbbbbb',
+  'top': "0",
+  'left': "0",
+  'x-offset': "0",
+  'y-offset': "0"
+  })
+  
+config.optionxform = str
+try:
+  config.read(os.getenv('HOME') + '/.callpoppy/config')
+
+  server = config.get('Asterisk', 'server')
+  port = config.getint('Asterisk', 'port')
+  username = config.get('Asterisk', 'username')
+  secret = config.get('Asterisk', 'secret')
+  
+  pu_bg = config.get('Popup', 'background')
+  pu_fg = config.get('Popup', 'foreground')
+  pu_top = config.getboolean('Popup', 'top')
+  pu_left = config.getboolean('Popup', 'left')
+  pu_xoff = config.getint('Popup', 'x-offset')
+  pu_yoff = config.getint('Popup', 'y-offset')
+  
+  ext = config.options('Extensions')
+
+  extensions = {}
+
+  for s in ext:
+    extensions[s] = config.get('Extensions', s)
+
+except ConfigParser.Error as conferr:
+  print "Couldn't start: " + conferr.__str__()
+  sys.exit(1)
+
+# Set up logging to syslog
+log = logging.getLogger(appname)
+log.setLevel(logging.DEBUG)
+
+# create log handler and set level to debug
+#lh = logging.StreamHandler()
+lh = logging.handlers.SysLogHandler(address='/dev/log')
+lh.setLevel(logging.INFO)
+
+logformat = logging.Formatter('%(name)s: %(levelname)s %(message)s')
+lh.setFormatter(logformat)
+
+log.addHandler(lh)
+
+sqlconnection = sqlite.connect(os.getenv('HOME') + '/.callpoppy/numbers.db')
+
+cursor = sqlconnection.cursor()
+ 
+timeouttask=None
+timeoutping=5
+timeoutloop=120
+
+n=gtkPopupNotify.NotificationStack(timeout=6)
+n.show_timeout = False
+n.edge_offset_x = pu_xoff
+n.edge_offset_y = pu_yoff
+n.corner = pu_left,pu_top
+n.max_popups = 1
+n.bg_color = gtk.gdk.Color(pu_bg)
+n.fg_color = gtk.gdk.Color(pu_fg)
+n.fontdesc = ("Sans Bold 12", "Sans 10", "Sans 10")
+
+class callMeFactory(AMIFactory):
+    cbconnect=None
+    def __init__(self):
+        AMIFactory.__init__(self, username, secret)
+    def connect(self):
+        log.info("Connecting to Asterisk")
+        df = self.login(server, port)
+        if self.cbconnect!=None:
+            df.addCallback(self.cbconnect)
+    def clientConnectionLost(self,connector,reason):
+        log.warning("connection lost - connecting again: " + reason.__str__())
+        reactor.callLater(1,self.connect)
+    def clientConnectionFailed(self,connector,reason):
+        log.warning("connection failed - connecting again: " + reason.__str__())
+        reactor.callLater(1,self.connect)
+ 
+def onDial(protocol,event):
+    destination=event['destination']
+    for s in extensions.keys():
+        if destination.startswith(s):
+            cid=event['calleridnum']
+            cidname=lookupnumber(cid,event['calleridname'])
+            extname=extensions[s]
+            log.info("Call from " + cidname + " (" + cid + ") for " + extname)
+            notify("Incoming call for "+extname, cidname+"\n"+cid, "call-start.png")
+
+def lookupnumber(cidnum, out):
+    global cursor
+    idx = cidnum[-10:]
+    try:
+      cursor.execute('SELECT * FROM numbers WHERE tel = ?', (idx,))
+      row = cursor.fetchone()
+    except:
+      return out
+    if row:
+      out = row[2]
+    return out
+
+def notify(title, message, image):
+  n.new_popup(title=title, message=message, image=image)
+  return True
+
+def checknetlink(protocol):
+ 
+    def ontimeout():
+        log.debug("timeout")
+        if dc.active():
+            dc.cancel()
+        timeouttask.stop()
+        protocol.transport.loseConnection()
+ 
+    def canceltimeout(*val):
+        if dc.active():
+            dc.cancel()
+ 
+        log.debug("cancel timeout")
+        log.debug(val)
+ 
+    def success(val):
+        pass
+ 
+    log.debug("setting timeout")
+    dc = reactor.callLater(timeoutping,ontimeout)
+    df = protocol.ping()
+    df.addBoth(canceltimeout)
+    df.addCallback(success)
+    df.addErrback(ontimeout)
+ 
+def onLogin(protocol):
+    df = protocol.registerEvent("Dial",onDial)
+    global timeouttask
+    timeouttask = task.LoopingCall(checknetlink,protocol)
+    timeouttask.start(timeoutloop);
+    return df
+ 
+def main():
+    cm = callMeFactory()
+    cm.cbconnect=onLogin
+    cm.connect()
+ 
+def killapp(*args):
+    reactor.stop()
+    return True
+ 
+if __name__ == '__main__':
+    #manager.log.setLevel( logging.DEBUG )
+    #log.setLevel(logging.INFO)
+    #logging.basicConfig()
+ 
+    #exit script when gnome logs out
+
+    
+    gnome.program_init (appname, "1.0")
+    client = gnome.ui.master_client()
+    client.connect("save-yourself", killapp)
+ 
+    #init libnotifier and reactor
+    #pynotify.init(appname);
+    reactor.callWhenRunning(main)
+    reactor.run()
