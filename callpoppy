@@ -5,18 +5,18 @@
 #
 # Inspired by pyCalledMe by olivier@olihb.com
 #
-#This program is free software: you can redistribute it and/or modify
-#it under the terms of the GNU Lesser General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-#This program is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#GNU Lesser General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
 #
-#You should have received a copy of the GNU Lesser General Public License
-#along with this program. If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 
  
 from twisted.internet import gtk2reactor
@@ -26,9 +26,15 @@ from twisted.internet import reactor
 import gtkPopupNotify, gtk
 from starpy.manager import AMIFactory
 from twisted.internet import task
-import logging,logging.handlers,gnome.ui,sys,os
+import logging,logging.handlers,sys,os
 from pysqlite2 import dbapi2 as sqlite
 import ConfigParser
+
+hasGnome = True
+try:
+  import gnome.ui
+except:
+  hasGnome = False
 
 appname = 'callpoppy'
 
@@ -74,9 +80,8 @@ log = logging.getLogger(appname)
 log.setLevel(logging.DEBUG)
 
 # create log handler and set level to debug
-#lh = logging.StreamHandler()
 lh = logging.handlers.SysLogHandler(address='/dev/log')
-lh.setLevel(logging.INFO)
+lh.setLevel(logging.DEBUG)
 
 logformat = logging.Formatter('%(name)s: %(levelname)s %(message)s')
 lh.setFormatter(logformat)
@@ -131,12 +136,12 @@ def lookupnumber(cidnum, out):
     global cursor
     idx = cidnum[-10:]
     try:
-      cursor.execute('SELECT * FROM numbers WHERE tel = ?', (idx,))
+      cursor.execute('SELECT name FROM numbers WHERE tel = ?', (idx,))
       row = cursor.fetchone()
     except:
       return out
     if row:
-      out = row[2]
+      out = row[0]
     return out
 
 def notify(title, message, image):
@@ -190,14 +195,13 @@ if __name__ == '__main__':
     #log.setLevel(logging.INFO)
     #logging.basicConfig()
  
-    #exit script when gnome logs out
 
-    
-    gnome.program_init (appname, "1.0")
-    client = gnome.ui.master_client()
-    client.connect("save-yourself", killapp)
+    # On Gnome, ensure the script exits when the user 
+    # logs out.
+    if hasGnome:
+      gnome.program_init (appname, "1.0")
+      client = gnome.ui.master_client()
+      client.connect("save-yourself", killapp)
  
-    #init libnotifier and reactor
-    #pynotify.init(appname);
     reactor.callWhenRunning(main)
     reactor.run()
