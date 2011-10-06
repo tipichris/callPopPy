@@ -4,53 +4,75 @@
 # Lines beginning # or ; are comments and are ignored
 ##############################################################
 
-# This section configures the connection to the Asterisk server.
-# All values except port are required. port defaults to 5038 if
-# not specified
+#####################################################################
+## This section configures the connection to the Asterisk server.
+## All values except port are required. port defaults to 5038 if
+## not specified
+
 [Asterisk]
-server: 192.168.37.1
+server: 192.168.1.1
 port: 5038
 username: callpoppy
 secret: topsecret
 
-# This section configures the extensions to monitor incoming calls
-# for. It must consist of one or more key: value pairs where the 
-# key is the channel to monitor and the value is is human readable 
-# name that will be used to identify which channel the call is for
-# in the popup. 
-# eg
-# SIP/office: Office
-# will cause a popup for calls to SIP/office to be titled
-# "Incoming call for Office"
-[Extensions]
-SIP/cordless-home: Home
-SIP/office: Office
+#####################################################################
+## This section configures the extensions to monitor incoming calls
+## for. It must consist of one or more key: value pairs where the 
+## key is the channel to monitor and the value is is human readable 
+## name that will be used to identify which channel the call is for
+## in the popup. 
+## eg
+## SIP/office: Office
+## will cause a popup for calls to SIP/office to be titled
+## "Incoming call for Office"
 
-# This section configures the appearance of the popup. All values are 
-# optional, but the section must exist
+[Extensions]
+;SIP/cordless-home: Home
+;SIP/office: Office
+
+#####################################################################
+## This section configures the appearance of the popup. All values are 
+## optional, but the section must exist
+
 [Popup]
 
 # If set to 1 the popup is aligned to the top of the screen. If set 
 # to 0, it is aligned to the bottom. eg
-# top: 1
+;top: 1
 
 # If set to 1 the popup is aligned to the left of the screen. If set 
 # to 0, it is aligned to the right. eg
-# left: 1
+;left: 1
 
 # The offset from the left or right edge, in pixels. Default is 0
 # eg
-# x-offset: 50
+;x-offset: 50
 
 # The offset from the top or bottom edge, in pixels. Default is 0
 # eg
-# y-offset: 50
+;y-offset: 50
 
 # The popup background colour. Given as an HTML style hex code. Default
 # is #171717. eg
-# background: #bb0000
+;background: #bb0000
 
 # The popup foreground colour. Given as an HTML style hex code. Default
 # is #bbbbbb. eg
-# foreground: #00bb00
+;foreground: #00bb00
 
+#####################################################################
+## This section configures logging
+[Logging]
+
+# loglevel is a value between 1 and 5, mapped as follows:
+# 1  CRITICAL
+# 2  ERROR
+# 3  WARNING
+# 4  INFO
+# 5  DEBUG
+# Default is 4. eg
+;loglevel=5
+
+# logfile is the file to log to. Default is <HOME>/.callpoppy/callpoppy.log
+# eg
+;logfile=/var/log/callpoppy.log
