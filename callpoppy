@@ -24,7 +24,6 @@ from twisted.internet import gtk2reactor
 gtk2reactor.install(True)
  
 from twisted.internet import reactor
-import gtkPopupNotify, gtk
 from starpy.manager import AMIFactory
 from twisted.internet import task
 import logging,logging.handlers,sys,os.path
@@ -44,6 +43,7 @@ appname = 'callpoppy'
 
 config = ConfigParser.RawConfigParser({
   'port': '5038',
+  'uselibnotify': 'False',
   'background': '#171717', 
   'foreground': '#bbbbbb',
   'top': "0",
@@ -75,6 +75,8 @@ try:
   pu_yoff = config.getint('Popup', 'y-offset')
   pu_timeout = config.getint('Popup', 'timeout')
   
+  usePyNotify = config.getboolean('Popup', 'uselibnotify')
+  
   ext = config.options('Extensions')
 
   extensions = {}
@@ -101,6 +103,18 @@ lh.setFormatter(logformat)
 
 log.addHandler(lh)
 
+if usePyNotify:
+  try:
+    log.debug("Attempting to use pynotify")
+    import pynotify
+  except:
+    log.warning("Unable to import pynotify. Using gtkPopupNotify instead")
+    usePyNotify = False
+
+if not usePyNotify:
+  log.debug("Importing gtkPopupNotify")
+  import gtkPopupNotify, gtk
+
 sqlconnection = sqlite.connect(os.path.expanduser('~/.callpoppy/numbers.db'))
 
 cursor = sqlconnection.cursor()
@@ -108,16 +122,6 @@ cursor = sqlconnection.cursor()
 timeouttask=None
 timeoutping=5
 timeoutloop=120
-
-notifier=gtkPopupNotify.NotificationStack(timeout=pu_timeout)
-notifier.show_timeout = False
-notifier.edge_offset_x = pu_xoff
-notifier.edge_offset_y = pu_yoff
-notifier.corner = pu_left,pu_top
-notifier.max_popups = 1
-notifier.bg_color = gtk.gdk.Color(pu_bg)
-notifier.fg_color = gtk.gdk.Color(pu_fg)
-notifier.fontdesc = ("Sans Bold 10", "Sans 10", "Sans 10")
 
 class callMeFactory(AMIFactory):
     cbconnect=None
@@ -134,16 +138,18 @@ class callMeFactory(AMIFactory):
     def clientConnectionFailed(self,connector,reason):
         log.warning("connection failed - connecting again: " + reason.__str__())
         reactor.callLater(1,self.connect)
- 
+
+
 def onDial(protocol,event):
-    destination=event['destination']
-    for s in extensions.keys():
+    if 'destination' in event:
+      destination=event['destination']
+      for s in extensions.keys():
         if destination.startswith(s):
-            cid=event['calleridnum']
-            cidname=lookupnumber(cid,event['calleridname'])
-            extname=extensions[s]
-            log.info("Call from " + cidname + " (" + cid + ") for " + extname)
-            notify("Incoming call for "+extname, cidname + "\n"+cid)
+          cid=event['calleridnum']
+          cidname=lookupnumber(cid,event['calleridname'])
+          extname=extensions[s]
+          log.info("Call from " + cidname + " (" + cid + ") for " + extname)
+          notify("Incoming call for "+extname, cidname + "\n"+cid)
 
 def lookupnumber(cidnum, out):
     global cursor
@@ -158,8 +164,33 @@ def lookupnumber(cidnum, out):
       out = row[0]
     return out
 
+def initnotifier():
+  if usePyNotify:
+    pynotify.init(appname)
+    return None
+  else:
+    notifier=gtkPopupNotify.NotificationStack(timeout=pu_timeout)
+    notifier.show_timeout = False
+    notifier.edge_offset_x = pu_xoff
+    notifier.edge_offset_y = pu_yoff
+    notifier.corner = pu_left,pu_top
+    notifier.max_popups = 1
+    notifier.bg_color = gtk.gdk.Color(pu_bg)
+    notifier.fg_color = gtk.gdk.Color(pu_fg)
+    notifier.fontdesc = ("Sans Bold 10", "Sans 10", "Sans 10")
+    return notifier
+
 def notify(title, message):
-  notifier.new_popup(title=escape(title), message=escape(message), image="call-start.png")
+  log.debug("notify called")
+  if usePyNotify:
+    log.debug("Notifying with pynotifier")
+    n=pynotify.Notification(title,message,"call-start")
+    n.set_timeout(pu_timeout * 1000)
+    n.show()
+  else:
+    log.debug("Notifying with gtkPopupNotify")
+    notifier.new_popup(title=escape(title), message=escape(message), image="call-start.png")
+  log.debug("returning from notify")
   return True
 
 def checknetlink(protocol):
@@ -197,6 +228,7 @@ def onLogin(protocol):
  
 def main():
     cm = callMeFactory()
+    logging.getLogger('AMI').addHandler(lh)
     cm.cbconnect=onLogin
     cm.connect()
  
@@ -208,7 +240,9 @@ if __name__ == '__main__':
     #manager.log.setLevel( logging.DEBUG )
     #log.setLevel(logging.INFO)
     #logging.basicConfig()
- 
+
+    # initialise our notifier
+    notifier = initnotifier()
 
     # On Gnome, ensure the script exits when the user 
     # logs out.
@@ -216,6 +250,7 @@ if __name__ == '__main__':
       gnome.program_init (appname, "1.0")
       client = gnome.ui.master_client()
       client.connect("save-yourself", killapp)
- 
+
+
     reactor.callWhenRunning(main)
     reactor.run()
