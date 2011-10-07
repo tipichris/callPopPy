@@ -50,6 +50,18 @@ secret: topsecret
 ## optional, but the section must exist
 
 [Popup]
+
+# The period, in seconds, after which the pop will close if not closed
+# earlier by the user. Default 6. eg
+;timeout: 10
+
+# On Gnome based Linux distros, such as Ubuntu, you can optionally use
+# libnotify to provide the popups. This has tighter integration with
+# operating system, but is less flexible. If you set uselibnotify to
+# yes, the rest of the options in the Popup section (except for 
+# timeout) have no effect. eg
+;uselibnotify: yes
+
 # If set to 1 the popup is aligned to the top of the screen. If set 
 # to 0, it is aligned to the bottom. eg
 ;top: 1
@@ -74,12 +86,9 @@ secret: topsecret
 # is #bbbbbb. eg
 ;foreground: #00bb00
 
-# The period, in seconds, after which the pop will close if not closed
-# earlier by the user. Default 6. eg
-;timeout: 10
-
 #####################################################################
-## This section configures logging
+## This section configures logging. You can select which file to log
+## to log to, and the level of detail.
 [Logging]
 
 # loglevel is a value between 1 and 5, mapped as follows:
