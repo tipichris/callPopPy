@@ -50,6 +50,7 @@ config = ConfigParser.RawConfigParser({
   'left': "0",
   'x-offset': "0",
   'y-offset': "0",
+  'timeout': "6",
   'loglevel': "4",
   'logfile': os.path.expanduser('~/.callpoppy/callpoppy.log')
   })
@@ -72,6 +73,7 @@ try:
   pu_left = config.getboolean('Popup', 'left')
   pu_xoff = config.getint('Popup', 'x-offset')
   pu_yoff = config.getint('Popup', 'y-offset')
+  pu_timeout = config.getint('Popup', 'timeout')
   
   ext = config.options('Extensions')
 
@@ -107,7 +109,7 @@ timeouttask=None
 timeoutping=5
 timeoutloop=120
 
-notifier=gtkPopupNotify.NotificationStack(timeout=6)
+notifier=gtkPopupNotify.NotificationStack(timeout=pu_timeout)
 notifier.show_timeout = False
 notifier.edge_offset_x = pu_xoff
 notifier.edge_offset_y = pu_yoff

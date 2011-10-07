@@ -1,8 +1,14 @@
-##############################################################
-# This is the configuration file for callpoppy. It should be 
-# copied to <homedir>/.callpoppy/configuration
+#####################################################################
+# This is the configuration file for callpoppy. It should be copied
+# to <homedir>/.callpoppy/config
+#
 # Lines beginning # or ; are comments and are ignored
-##############################################################
+#
+# All SECTIONS are required; Most values are optional and sensible
+# defaults will be used if not specified. The exception are values in
+# the [Asterisk] section, and [Extensions] must contain at least one
+# key: value pair
+#####################################################################
 
 #####################################################################
 ## This section configures the connection to the Asterisk server.
@@ -10,9 +16,17 @@
 ## not specified
 
 [Asterisk]
+
+# Server IP address or fully qualified domain name
 server: 192.168.1.1
+
+# Port to connect to. Defaults to 5038
 port: 5038
+
+# Username for the Asterisk Manager Interface (AMI)
 username: callpoppy
+
+# Secret (password) for AMI
 secret: topsecret
 
 #####################################################################
@@ -27,15 +41,15 @@ secret: topsecret
 ## "Incoming call for Office"
 
 [Extensions]
-;SIP/cordless-home: Home
+;SIP/home: Home
 ;SIP/office: Office
+;IAX2/phil: Phil's phone
 
 #####################################################################
 ## This section configures the appearance of the popup. All values are 
 ## optional, but the section must exist
 
 [Popup]
-
 # If set to 1 the popup is aligned to the top of the screen. If set 
 # to 0, it is aligned to the bottom. eg
 ;top: 1
@@ -60,6 +74,10 @@ secret: topsecret
 # is #bbbbbb. eg
 ;foreground: #00bb00
 
+# The period, in seconds, after which the pop will close if not closed
+# earlier by the user. Default 6. eg
+;timeout: 10
+
 #####################################################################
 ## This section configures logging
 [Logging]
@@ -73,6 +91,7 @@ secret: topsecret
 # Default is 4. eg
 ;loglevel=5
 
-# logfile is the file to log to. Default is <HOME>/.callpoppy/callpoppy.log
+# logfile is the file to log to. Default is 
+# <homedir>/.callpoppy/callpoppy.log
 # eg
 ;logfile=/var/log/callpoppy.log
