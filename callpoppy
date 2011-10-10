@@ -38,81 +38,7 @@ try:
 except:
   hasGnome = False
 
-appname = 'callpoppy'
 
-# Keep our logs secret
-os.umask(0077);
-
-config = ConfigParser.RawConfigParser({
-  'port': '5038',
-  'uselibnotify': 'False',
-  'background': '#171717', 
-  'foreground': '#bbbbbb',
-  'top': "0",
-  'left': "0",
-  'x-offset': "0",
-  'y-offset': "0",
-  'timeout': "6",
-  'loglevel': "4",
-  'logfile': os.path.expanduser('~/.callpoppy/callpoppy.log')
-  })
-  
-config.optionxform = str
-conffile = os.path.expanduser('~/.callpoppy/config')
-try:
-  config.read(conffile)
-
-  server = config.get('Asterisk', 'server')
-  port = config.getint('Asterisk', 'port')
-  username = config.get('Asterisk', 'username')
-  secret = config.get('Asterisk', 'secret')
-  
-  loglevel = config.getint('Logging', 'loglevel')
-  logfile = config.get('Logging', 'logfile')
-  
-  popupparams = {}
-  popupparams['bg'] = config.get('Popup', 'background')
-  popupparams['fg'] = config.get('Popup', 'foreground')
-  popupparams['top'] = config.getboolean('Popup', 'top')
-  popupparams['left'] = config.getboolean('Popup', 'left')
-  popupparams['xoff'] = config.getint('Popup', 'x-offset')
-  popupparams['yoff'] = config.getint('Popup', 'y-offset')
-  popupparams['timeout'] = config.getint('Popup', 'timeout')
-  
-  usePyNotify = config.getboolean('Popup', 'uselibnotify')
-  
-  ext = config.options('Extensions')
-
-  extensions = {}
-
-  for s in ext:
-    extensions[s] = config.get('Extensions', s)
-
-except ConfigParser.Error as conferr:
-  sys.exit(appname + " could not read the configuration file '" + conffile +"':\n" + conferr.__str__())
-
-# Set up logging
-log = logging.getLogger(appname)
-loglevels = [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
-loglevel = loglevel - 1
-log.setLevel(loglevels[loglevel])
-
-# create log handler and set level to debug
-lh = logging.handlers.RotatingFileHandler(logfile, 'a', 102400, 3)
-lh.setLevel(logging.DEBUG)
-
-logformat = logging.Formatter('%(asctime)s %(name)s: %(levelname)s %(message)s')
-lh.setFormatter(logformat)
-
-log.addHandler(lh)
-
-sqlconnection = sqlite.connect(os.path.expanduser('~/.callpoppy/numbers.db'))
-
-cursor = sqlconnection.cursor()
- 
-timeouttask=None
-timeoutping=5
-timeoutloop=120
 
 class callPopFactory(ReconnectingClientFactory):
     protocol = AMIProtocol
@@ -258,6 +184,82 @@ def killapp(*args):
     return True
  
 if __name__ == '__main__':
+
+    appname = 'callpoppy'
+
+    # Keep our logs secret
+    os.umask(0077);
+
+    config = ConfigParser.RawConfigParser({
+      'port': '5038',
+      'uselibnotify': 'False',
+      'background': '#171717', 
+      'foreground': '#bbbbbb',
+      'top': "0",
+      'left': "0",
+      'x-offset': "0",
+      'y-offset': "0",
+      'timeout': "6",
+      'loglevel': "4",
+      'logfile': os.path.expanduser('~/.callpoppy/callpoppy.log')
+      })
+      
+    config.optionxform = str
+    conffile = os.path.expanduser('~/.callpoppy/config')
+    try:
+      config.read(conffile)
+
+      server = config.get('Asterisk', 'server')
+      port = config.getint('Asterisk', 'port')
+      username = config.get('Asterisk', 'username')
+      secret = config.get('Asterisk', 'secret')
+      
+      loglevel = config.getint('Logging', 'loglevel')
+      logfile = config.get('Logging', 'logfile')
+      
+      popupparams = {}
+      popupparams['bg'] = config.get('Popup', 'background')
+      popupparams['fg'] = config.get('Popup', 'foreground')
+      popupparams['top'] = config.getboolean('Popup', 'top')
+      popupparams['left'] = config.getboolean('Popup', 'left')
+      popupparams['xoff'] = config.getint('Popup', 'x-offset')
+      popupparams['yoff'] = config.getint('Popup', 'y-offset')
+      popupparams['timeout'] = config.getint('Popup', 'timeout')
+      
+      usePyNotify = config.getboolean('Popup', 'uselibnotify')
+      
+      ext = config.options('Extensions')
+
+      extensions = {}
+
+      for s in ext:
+        extensions[s] = config.get('Extensions', s)
+
+    except ConfigParser.Error as conferr:
+      sys.exit(appname + " could not read the configuration file '" + conffile +"':\n" + conferr.__str__())
+
+    # Set up logging
+    log = logging.getLogger(appname)
+    loglevels = [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+    loglevel = loglevel - 1
+    log.setLevel(loglevels[loglevel])
+
+    # create log handler and set level to debug
+    lh = logging.handlers.RotatingFileHandler(logfile, 'a', 102400, 3)
+    lh.setLevel(logging.DEBUG)
+
+    logformat = logging.Formatter('%(asctime)s %(name)s: %(levelname)s %(message)s')
+    lh.setFormatter(logformat)
+
+    log.addHandler(lh)
+
+    # set up connection to sqllite
+    sqlconnection = sqlite.connect(os.path.expanduser('~/.callpoppy/numbers.db'))
+    cursor = sqlconnection.cursor()
+
+    timeouttask=None
+    timeoutping=5
+    timeoutloop=120
 
     # initialise our notifier
     popup = Popup(usePyNotify, popupparams)
