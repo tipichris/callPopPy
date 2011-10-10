@@ -119,10 +119,11 @@ class CallPopHandler:
 
     pingtimeout = 5
     pinginterval = 120
+    dbpath = os.path.expanduser('~/.callpoppy/numbers.db')
 
     def __init__(self, extensions, popup):
         # set up connection to sqllite
-        sqlconnection = sqlite.connect(os.path.expanduser('~/.callpoppy/numbers.db'))
+        sqlconnection = sqlite.connect(self.dbpath)
         self.cursor = sqlconnection.cursor()
         self.extensions = extensions
         self.popup = popup
