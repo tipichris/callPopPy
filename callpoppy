@@ -117,15 +117,15 @@ class Popup:
 
 class CallPopHandler:
 
-    popup = None
-    pingtimeout=5
-    pinginterval=120
+    pingtimeout = 5
+    pinginterval = 120
 
-    def __init__(self, extensions):
+    def __init__(self, extensions, popup):
         # set up connection to sqllite
         sqlconnection = sqlite.connect(os.path.expanduser('~/.callpoppy/numbers.db'))
         self.cursor = sqlconnection.cursor()
         self.extensions = extensions
+        self.popup = popup
 
     def onDial(self, protocol, event):
         log.debug("Got event %s" % (event,))
@@ -185,15 +185,15 @@ class CallPopHandler:
 
 
 def main():
-    cph = CallPopHandler(extensions)
     # initialise our notifier
-    cph.popup = Popup(usePyNotify, popupparams)
-    cp = CallPopFactory(username, secret, server, port)
+    popup = Popup(usePyNotify, popupparams)
+    handler = CallPopHandler(extensions, popup)
+    factory = CallPopFactory(username, secret, server, port)
     logging.getLogger('AMI').setLevel(loglevels[loglevel])
     logging.getLogger('AMI').addHandler(lh)
-    cp.cbconnect=cph.onLogin
-    cp.maxDelay = 600
-    cp.connect()
+    factory.cbconnect=handler.onLogin
+    factory.maxDelay = 600
+    factory.connect()
 
 def killapp(*args):
     reactor.stop()
