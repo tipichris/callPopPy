@@ -19,10 +19,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
- 
+
 from twisted.internet import gtk2reactor
 gtk2reactor.install(True)
- 
+
 from twisted.internet import reactor, defer
 from twisted.internet.protocol import ReconnectingClientFactory
 from starpy.manager import AMIProtocol
@@ -87,7 +87,7 @@ class Popup:
       except:
         log.warning("Unable to import pynotify. Using gtkPopupNotify instead")
         self.usePyNotify = False
-    
+
     if not self.usePyNotify:
       log.debug("Importing gtkPopupNotify")
       import gtkPopupNotify, gtk
@@ -115,78 +115,90 @@ class Popup:
       self.notifier.new_popup(title=escape(title), message=escape(message), image=os.path.join(sys.path[0], 'call-start.png'))
     return True
 
-def onDial(protocol,event):
-    log.debug("Got event %s" % (event,))
-    if 'destination' in event:
-      destination=event['destination'].lower()
-      for s in extensions.keys():
-        if destination.startswith(s.lower()):
-          cid=event['calleridnum']
-          cidname=lookupnumber(cid,event['calleridname'])
-          extname=extensions[s]
-          log.info("Call from %s (%s) for %s", cidname, cid, extname)
-          popup.show("Incoming call for "+extname, cidname + "\n"+cid)
+class CallPopHandler:
 
-def lookupnumber(cidnum, out):
-    global cursor
-    idx = cidnum[-10:]
-    try:
-      cursor.execute('SELECT name FROM numbers WHERE tel = ?', (idx,))
-      row = cursor.fetchone()
-    except:
-      log.debug("Number not found in database")
-      return out
-    if row:
-      out = row[0]
-    return out
+    popup = None
+    pingtimeout=5
+    pinginterval=120
 
-def checknetlink(protocol):
- 
-    def ontimeout():
-        log.debug("Unexpected response or timeout waiting. Closing connection")
-        if dc.active():
-            dc.cancel()
-        timeouttask.stop()
-        protocol.transport.loseConnection()
- 
-    def canceltimeout(*val):
-        if dc.active():
-            dc.cancel()
- 
-        log.debug("Received pong. Cancelling timeout")
-        log.debug("%s", val)
- 
-    def success(val):
-        pass
- 
-    log.debug("Pinging server - setting timeout")
-    dc = reactor.callLater(timeoutping,ontimeout)
-    df = protocol.ping()
-    df.addBoth(canceltimeout)
-    df.addCallback(success)
-    df.addErrback(ontimeout)
- 
-def onLogin(protocol):
-    log.debug('Resetting reconnection delay')
-    protocol.factory.resetDelay()
-    df = protocol.registerEvent("Dial",onDial)
-    global timeouttask
-    timeouttask = task.LoopingCall(checknetlink,protocol)
-    timeouttask.start(timeoutloop);
-    return df
- 
+    def __init__(self, extensions):
+        # set up connection to sqllite
+        sqlconnection = sqlite.connect(os.path.expanduser('~/.callpoppy/numbers.db'))
+        self.cursor = sqlconnection.cursor()
+        self.extensions = extensions
+
+    def onDial(self, protocol, event):
+        log.debug("Got event %s" % (event,))
+        if 'destination' in event:
+          destination=event['destination'].lower()
+          for s in self.extensions.keys():
+            if destination.startswith(s.lower()):
+              cid=event['calleridnum']
+              cidname=self.lookupnumber(cid,event['calleridname'])
+              extname=self.extensions[s]
+              log.info("Call from %s (%s) for %s", cidname, cid, extname)
+              self.popup.show("Incoming call for "+extname, cidname + "\n"+cid)
+
+    def lookupnumber(self, cidnum, out):
+        idx = cidnum[-10:]
+        try:
+          self.cursor.execute('SELECT name FROM numbers WHERE tel = ?', (idx,))
+          row = cursor.fetchone()
+        except:
+          log.debug("Number not found in database")
+          return out
+        if row:
+          out = row[0]
+        return out
+
+    def onLogin(self, protocol):
+        log.debug('Resetting reconnection delay')
+        protocol.factory.resetDelay()
+        df = protocol.registerEvent("Dial",self.onDial)
+        timeouttask = task.LoopingCall(self.pinglink, protocol)
+        timeouttask.start(self.pinginterval);
+        return df
+
+    def pinglink(self, protocol):
+        def ontimeout():
+            log.debug("Unexpected response or timeout waiting. Closing connection")
+            if dc.active():
+                dc.cancel()
+            timeouttask.stop()
+            protocol.transport.loseConnection()
+
+        def canceltimeout(*val):
+            if dc.active():
+                dc.cancel()
+            log.debug("Received pong. Cancelling timeout")
+            log.debug("%s", val)
+
+        def success(val):
+            pass
+
+        log.debug("Pinging server - setting timeout")
+        dc = reactor.callLater(self.pingtimeout,ontimeout)
+        df = protocol.ping()
+        df.addBoth(canceltimeout)
+        df.addCallback(success)
+        df.addErrback(ontimeout)
+
+
 def main():
+    cph = CallPopHandler(extensions)
+    # initialise our notifier
+    cph.popup = Popup(usePyNotify, popupparams)
     cp = CallPopFactory(username, secret, server, port)
     logging.getLogger('AMI').setLevel(loglevels[loglevel])
     logging.getLogger('AMI').addHandler(lh)
-    cp.cbconnect=onLogin
+    cp.cbconnect=cph.onLogin
     cp.maxDelay = 600
     cp.connect()
- 
+
 def killapp(*args):
     reactor.stop()
     return True
- 
+
 if __name__ == '__main__':
 
     appname = 'callpoppy'
@@ -197,7 +209,7 @@ if __name__ == '__main__':
     config = ConfigParser.RawConfigParser({
       'port': '5038',
       'uselibnotify': 'False',
-      'background': '#171717', 
+      'background': '#171717',
       'foreground': '#bbbbbb',
       'top': "0",
       'left': "0",
@@ -207,7 +219,7 @@ if __name__ == '__main__':
       'loglevel': "4",
       'logfile': os.path.expanduser('~/.callpoppy/callpoppy.log')
       })
-      
+
     config.optionxform = str
     conffile = os.path.expanduser('~/.callpoppy/config')
     try:
@@ -217,10 +229,10 @@ if __name__ == '__main__':
       port = config.getint('Asterisk', 'port')
       username = config.get('Asterisk', 'username')
       secret = config.get('Asterisk', 'secret')
-      
+
       loglevel = config.getint('Logging', 'loglevel')
       logfile = config.get('Logging', 'logfile')
-      
+
       popupparams = {}
       popupparams['bg'] = config.get('Popup', 'background')
       popupparams['fg'] = config.get('Popup', 'foreground')
@@ -229,9 +241,9 @@ if __name__ == '__main__':
       popupparams['xoff'] = config.getint('Popup', 'x-offset')
       popupparams['yoff'] = config.getint('Popup', 'y-offset')
       popupparams['timeout'] = config.getint('Popup', 'timeout')
-      
+
       usePyNotify = config.getboolean('Popup', 'uselibnotify')
-      
+
       ext = config.options('Extensions')
 
       extensions = {}
@@ -257,18 +269,7 @@ if __name__ == '__main__':
 
     log.addHandler(lh)
 
-    # set up connection to sqllite
-    sqlconnection = sqlite.connect(os.path.expanduser('~/.callpoppy/numbers.db'))
-    cursor = sqlconnection.cursor()
-
-    timeouttask=None
-    timeoutping=5
-    timeoutloop=120
-
-    # initialise our notifier
-    popup = Popup(usePyNotify, popupparams)
-
-    # On Gnome, ensure the script exits when the user 
+    # On Gnome, ensure the script exits when the user
     # logs out.
     if hasGnome:
       gnome.program_init (appname, "1.0")
