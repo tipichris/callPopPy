@@ -27,7 +27,11 @@ from twisted.internet import reactor, defer
 from twisted.internet.protocol import ReconnectingClientFactory
 from starpy.manager import AMIProtocol
 from twisted.internet import task
-import logging,logging.handlers,sys,os,os.path,stat
+import logging
+import logging.handlers
+import sys
+import os
+import os.path
 from cgi import escape
 from pysqlite2 import dbapi2 as sqlite
 import ConfigParser
@@ -40,7 +44,7 @@ except:
 
 
 
-class callPopFactory(ReconnectingClientFactory):
+class CallPopFactory(ReconnectingClientFactory):
     protocol = AMIProtocol
     cbconnect=None
 
@@ -172,7 +176,7 @@ def onLogin(protocol):
     return df
  
 def main():
-    cp = callPopFactory(username, secret, server, port)
+    cp = CallPopFactory(username, secret, server, port)
     logging.getLogger('AMI').setLevel(loglevels[loglevel])
     logging.getLogger('AMI').addHandler(lh)
     cp.cbconnect=onLogin
