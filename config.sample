@@ -13,7 +13,7 @@
 #####################################################################
 ## This section configures the connection to the Asterisk server.
 ## All values except port are required. port defaults to 5038 if
-## not specified
+## not specified.
 
 [Asterisk]
 
@@ -41,6 +41,7 @@ secret: topsecret
 ## "Incoming call for Office"
 
 [Extensions]
+
 ;SIP/home: Home
 ;SIP/office: Office
 ;IAX2/phil: Phil's phone
@@ -88,7 +89,9 @@ secret: topsecret
 
 #####################################################################
 ## This section configures logging. You can select which file to log
-## to log to, and the level of detail.
+## to log to, and the level of detail. All values are optional, but
+## the section must exist.
+
 [Logging]
 
 # loglevel is a value between 1 and 5, mapped as follows:

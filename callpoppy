@@ -26,12 +26,10 @@ gtk2reactor.install(True)
 from twisted.internet import reactor
 from starpy.manager import AMIFactory
 from twisted.internet import task
-import logging,logging.handlers,sys,os.path
+import logging,logging.handlers,sys,os,os.path,stat
 from cgi import escape
 from pysqlite2 import dbapi2 as sqlite
 import ConfigParser
-import logging.config
-
 
 hasGnome = True
 try:
@@ -40,6 +38,9 @@ except:
   hasGnome = False
 
 appname = 'callpoppy'
+
+# Keep our logs secret
+os.umask(0077);
 
 config = ConfigParser.RawConfigParser({
   'port': '5038',
@@ -99,12 +100,10 @@ log.setLevel(loglevels[loglevel])
 lh = logging.handlers.RotatingFileHandler(logfile, 'a', 102400, 3)
 lh.setLevel(logging.DEBUG)
 
-logformat = logging.Formatter('%(name)s: %(levelname)s %(message)s')
+logformat = logging.Formatter('%(name)s: %(asctime)s %(levelname)s %(message)s')
 lh.setFormatter(logformat)
 
 log.addHandler(lh)
-
-
 
 sqlconnection = sqlite.connect(os.path.expanduser('~/.callpoppy/numbers.db'))
 
@@ -114,7 +113,7 @@ timeouttask=None
 timeoutping=5
 timeoutloop=120
 
-class callMeFactory(AMIFactory):
+class callPopFactory(AMIFactory):
     cbconnect=None
     def __init__(self):
         AMIFactory.__init__(self, username, secret)
@@ -169,7 +168,7 @@ class Popup:
       n.show()
     else:
       log.debug("Notifying with gtkPopupNotify")
-      self.notifier.new_popup(title=escape(title), message=escape(message), image="call-start.png")
+      self.notifier.new_popup(title=escape(title), message=escape(message), image=os.path.join(sys.path[0], 'call-start.png'))
     return True
 
 def onDial(protocol,event):
@@ -230,19 +229,16 @@ def onLogin(protocol):
     return df
  
 def main():
-    cm = callMeFactory()
+    cp = callPopFactory()
     logging.getLogger('AMI').addHandler(lh)
-    cm.cbconnect=onLogin
-    cm.connect()
+    cp.cbconnect=onLogin
+    cp.connect()
  
 def killapp(*args):
     reactor.stop()
     return True
  
 if __name__ == '__main__':
-    #manager.log.setLevel( logging.DEBUG )
-    #log.setLevel(logging.INFO)
-    #logging.basicConfig()
 
     # initialise our notifier
     popup = Popup(usePyNotify, popupparams)
