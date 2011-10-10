@@ -23,8 +23,9 @@
 from twisted.internet import gtk2reactor
 gtk2reactor.install(True)
  
-from twisted.internet import reactor
-from starpy.manager import AMIFactory
+from twisted.internet import reactor, defer
+from twisted.internet.protocol import ReconnectingClientFactory
+from starpy.manager import AMIProtocol
 from twisted.internet import task
 import logging,logging.handlers,sys,os,os.path,stat
 from cgi import escape
@@ -113,21 +114,95 @@ timeouttask=None
 timeoutping=5
 timeoutloop=120
 
-class callPopFactory(AMIFactory):
+#class callPopFactoryOld(AMIFactory):
+#    cbconnect=None
+#    def __init__(self):
+#        AMIFactory.__init__(self, username, secret)
+#    def connect(self):
+#        log.info("Connecting to Asterisk")
+#        df = self.login(server, port)
+#        if self.cbconnect!=None:
+#            df.addCallback(self.cbconnect)
+#    def clientConnectionLost(self,connector,reason):
+#        log.warning("connection lost - connecting again: " + reason.__str__())
+#        reactor.callLater(1,self.connect)
+#    def clientConnectionFailed(self,connector,reason):
+#        log.warning("connection failed - connecting again: " + reason.__str__())
+#        reactor.callLater(1,self.connect)
+class callPopProtocol(AMIProtocol):
+    def connectionMade( self ):
+        """Handle connection to the AMI port (auto-login)
+        
+        This is a Twisted customisation point, we use it to automatically 
+        log into the connection we've just established.
+        
+        XXX Should probably use proper Twisted-style credential negotiations
+        """
+        log.info( 'Connection Made' )
+        df = self.login( )
+        def onComplete( message ):
+            """Check for success, errback or callback as appropriate"""
+            if not message['response'] == 'Success':
+                log.info( 'Login Failure: %s', message )
+                self.transport.loseConnection()
+                self.factory.loginDefer.errback( 
+                    error.AMICommandFailure( """Unable to connect to manager""", message)
+                )
+            else:
+                # XXX messy here, would rather have the factory trigger its own
+                # callback...
+                log.info( 'Login Complete: %s', message )
+                if not self.factory.logincallback:
+                  self.factory.loginDefer.callback(
+                      self,
+                  )
+                  self.factory.logincallback = True;
+        def onFailure( reason ):
+            """Handle failure to connect (e.g. due to timeout)"""
+            log.info( 'Login Call Failure: %s', reason.getTraceback() )
+            self.transport.loseConnection()
+            self.factory.loginDefer.errback( 
+                reason
+            )
+        df.addCallbacks( onComplete, onFailure )
+        
+        
+class callPopFactory(ReconnectingClientFactory):
+    protocol = callPopProtocol
     cbconnect=None
-    def __init__(self):
-        AMIFactory.__init__(self, username, secret)
-    def connect(self):
-        log.info("Connecting to Asterisk")
+    logincallback = False;
+    def __init__(self, username, secret):
+        self.username = username
+        self.secret = secret
+    def login( self, ip='localhost', port=5038, timeout=5 ):
+        """Connect, returning our (singleton) protocol instance with login completed
+        XXX This is messy, we'd much rather have the factory able to create
+        large numbers of protocols simultaneously
+        """
+        self.loginDefer = defer.Deferred()
+        reactor.connectTCP(ip,port,self, timeout=timeout)
+        return self.loginDefer
+    def clientConnectionFailed(self, connector, reason):
+        log.warning( 'Connection failed. Reason: ' + reason.__str__())
+        ReconnectingClientFactory.clientConnectionFailed(self, connector,reason)
+    def clientConnectionLost(self, connector, reason):
+        log.warning( 'Lost connection.  Reason: ' + reason.__str__())
+        ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
+
+    def connect(self, server, port):
+        log.info("Connecting to Asterisk at " + server + ":" + port.__str__())
         df = self.login(server, port)
         if self.cbconnect!=None:
             df.addCallback(self.cbconnect)
-    def clientConnectionLost(self,connector,reason):
-        log.warning("connection lost - connecting again: " + reason.__str__())
-        reactor.callLater(1,self.connect)
-    def clientConnectionFailed(self,connector,reason):
-        log.warning("connection failed - connecting again: " + reason.__str__())
-        reactor.callLater(1,self.connect)
+            
+    def buildProtocol(self, addr):
+        log.info("Resetting reconnection delay")
+        self.resetDelay()
+        p = self.protocol()
+        p.factory = self
+        return p
+
+
 
 class Popup:
   def __init__(self, usePyNotify, params):
@@ -222,6 +297,7 @@ def checknetlink(protocol):
     df.addErrback(ontimeout)
  
 def onLogin(protocol):
+    #protocol.factory.cbconnect = None
     df = protocol.registerEvent("Dial",onDial)
     global timeouttask
     timeouttask = task.LoopingCall(checknetlink,protocol)
@@ -229,10 +305,10 @@ def onLogin(protocol):
     return df
  
 def main():
-    cp = callPopFactory()
+    cp = callPopFactory(username, secret)
     logging.getLogger('AMI').addHandler(lh)
     cp.cbconnect=onLogin
-    cp.connect()
+    cp.connect(server, port)
  
 def killapp(*args):
     reactor.stop()
