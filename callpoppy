@@ -139,7 +139,7 @@ def lookupnumber(cidnum, out):
 def checknetlink(protocol):
  
     def ontimeout():
-        log.debug("timeout")
+        log.debug("Unexpected response or timeout waiting. Closing connection")
         if dc.active():
             dc.cancel()
         timeouttask.stop()
@@ -149,13 +149,13 @@ def checknetlink(protocol):
         if dc.active():
             dc.cancel()
  
-        log.debug("cancel timeout")
+        log.debug("Received pong. Cancelling timeout")
         log.debug("%s", val)
  
     def success(val):
         pass
  
-    log.debug("setting timeout")
+    log.debug("Pinging server - setting timeout")
     dc = reactor.callLater(timeoutping,ontimeout)
     df = protocol.ping()
     df.addBoth(canceltimeout)
