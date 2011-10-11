@@ -101,7 +101,7 @@ secret: topsecret
 # 4  INFO
 # 5  DEBUG
 # Default is 4. eg
-;loglevel=5
+;loglevel: 5
 
 # logfile is the file to log to. Default is 
 # <homedir>/.callpoppy/callpoppy.log
@@ -117,9 +117,9 @@ secret: topsecret
 # The path to the SQLite database. Default is 
 # <homedir>/.callpoppy/config
 # eg
-;dbfile=/var/db/callpoppy.db
+;dbfile: /var/db/callpoppy.db
 
 # The number of digits contained in the lookup table. See README. 
 # Default is 10, which works well for the UK. 
 # eg
-;digits=10
+;digits: 10
