@@ -12,6 +12,10 @@ such as Ubuntu. Otherwise it will use Daniel Woodhouse's gtkPopupNotify
 (https://github.com/woodenbrick/gtkPopupNotify), which is included
 in the distribution.
 
+callPopPy was written by Chris Hastie, http://www.oak-wood.co.uk and
+inspired by pyCalledMe by Olivier H. Beauchesne
+http://olihb.com/2010/08/08/incoming-call-popup-under-ubuntu-and-asterisk/
+
 Requirements
 ============
 
