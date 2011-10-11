@@ -1,24 +1,32 @@
 #!/usr/bin/env python
 # -*-coding: utf-8 -*-
-#
-# Copyright 2011 Chris Hastie
-#
-# Inspired by pyCalledMe by olivier@olihb.com
-# http://olihb.com/2010/08/08/incoming-call-popup-under-ubuntu-and-asterisk/
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+"""
+Monitor an Asterisk Manager Interface and provide popup notification of 
+incoming calls.
 
+callPopPy will attempt to look up the incoming number in a SQLite database
+and notify the name associated with the caller. Maintaining the SQLite
+database is a job for something else - a Thunderbird extension, Squalit, 
+exists to do this from a Thunderbird address book.
+
+Copyright 2011 Chris Hastie
+
+Inspired by pyCalledMe by olivier@olihb.com
+http://olihb.com/2010/08/08/incoming-call-popup-under-ubuntu-and-asterisk/
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.
+"""
 
 from twisted.internet import gtk2reactor
 gtk2reactor.install(True)
@@ -45,8 +53,11 @@ except:
 
 
 class CallPopFactory(ReconnectingClientFactory):
+    """ Factory for connection. Subclassed from ReconnectingClientFactory
+    to take advantage of backing off reconnection times
+    """
     protocol = AMIProtocol
-    cbconnect=None
+    connect_callback=None
 
     def __init__(self, username, secret, server='localhost', port=5038):
         self.username = username
@@ -70,10 +81,14 @@ class CallPopFactory(ReconnectingClientFactory):
     def connect(self):
         log.info("Connecting to Asterisk at %s:%d", self.server, self.port)
         df = self.login(self.server, self.port)
-        if self.cbconnect!=None:
-            df.addCallback(self.cbconnect)
+        if self.connect_callback!=None:
+            df.addCallback(self.connect_callback)
 
 class Popup:
+  """ Abstraction layer to handle popup notifications. Provides a consistent
+  API whether using pynotify or gtkPopupNotify
+  """
+  
   def __init__(self, usePyNotify, params):
     self.timeout = params['timeout']
     self.usePyNotify = usePyNotify
@@ -116,7 +131,8 @@ class Popup:
     return True
 
 class CallPopHandler:
-
+    """ Main application handler """
+    
     pingtimeout = 5
     pinginterval = 120
     dbpath = os.path.expanduser('~/.callpoppy/numbers.db')
@@ -162,8 +178,8 @@ class CallPopHandler:
         log.debug('Resetting reconnection delay')
         protocol.factory.resetDelay()
         df = protocol.registerEvent("Dial",self.onDial)
-        timeouttask = task.LoopingCall(self.pinglink, protocol)
-        timeouttask.start(self.pinginterval);
+        self.timeouttask = task.LoopingCall(self.pinglink, protocol)
+        self.timeouttask.start(self.pinginterval);
         return df
 
     def pinglink(self, protocol):
@@ -171,7 +187,7 @@ class CallPopHandler:
             log.debug("Unexpected response or timeout waiting. Closing connection")
             if dc.active():
                 dc.cancel()
-            timeouttask.stop()
+            self.timeouttask.stop()
             protocol.transport.loseConnection()
 
         def canceltimeout(*val):
@@ -201,11 +217,9 @@ def main():
     # initialise our factory
     factory = CallPopFactory(conf['username'], conf['secret'], conf['server'], conf['port'])
     
-    # set up logging from starpy
-    logging.getLogger('AMI').setLevel(loglevels[loglevel])
-    logging.getLogger('AMI').addHandler(lh)
+
     
-    factory.cbconnect=handler.onLogin
+    factory.connect_callback=handler.onLogin
     factory.maxDelay = 600
     factory.connect()
 
@@ -281,17 +295,21 @@ if __name__ == '__main__':
     # Set up logging
     log = logging.getLogger(appname)
     loglevels = [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
-    loglevel = conf['loglevel'] - 1
-    log.setLevel(loglevels[loglevel])
+    loglevel = loglevels[conf['loglevel'] - 1]
+    log.setLevel(loglevel)
 
-    # create log handler and set level to debug
+    # create log handler and set level. This creates a rotating log file
     lh = logging.handlers.RotatingFileHandler(conf['logfile'], 'a', 102400, 3)
-    lh.setLevel(logging.DEBUG)
+    lh.setLevel(loglevel)
 
     logformat = logging.Formatter('%(asctime)s %(name)s: %(levelname)s %(message)s')
     lh.setFormatter(logformat)
 
     log.addHandler(lh)
+    
+    # set up logging from starpy
+    logging.getLogger('AMI').setLevel(loglevel)
+    logging.getLogger('AMI').addHandler(lh)
     
     log.debug("Configuration read from %s", conffile)
     log.debug("Configuration: %s", conf)
