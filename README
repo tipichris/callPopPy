@@ -49,9 +49,23 @@ config, ie you should now have a file at
 Create a SQLite database at <homedirectory>/.callpoppy/numbers.db (see
 later).
 
-Now run callpoppy:
+Now run callpoppy. From the directory to which you unpacked it:
 
 python callpoppy
+
+On Unix like systems you can run it by calling it directly. From the 
+directory in which it is
+
+./callpoppy
+
+You may have to ensure the first line of the script points to your 
+python binary, and ensure that the script is executable:
+
+chmod 755 callpoppy
+
+Once you're sure that it's all working you'll probably want to set it
+up to start when you login or start your computer. How you do this will
+depend on your operating system.
 
 Configuration
 =============
