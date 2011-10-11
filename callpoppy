@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*-coding: utf-8 -*-
 """
-Monitor an Asterisk Manager Interface and provide popup notification of 
+Monitor an Asterisk Manager Interface and provide popup notification of
 incoming calls.
 
 callPopPy will attempt to look up the incoming number in a SQLite database
 and notify the name associated with the caller. Maintaining the SQLite
-database is a job for something else - a Thunderbird extension, Squalit, 
+database is a job for something else - a Thunderbird extension, Squalit,
 exists to do this from a Thunderbird address book.
 
 Copyright 2011 Chris Hastie
@@ -88,7 +88,7 @@ class Popup:
   """ Abstraction layer to handle popup notifications. Provides a consistent
   API whether using pynotify or gtkPopupNotify
   """
-  
+
   def __init__(self, usePyNotify, params):
     self.timeout = params['timeout']
     self.usePyNotify = usePyNotify
@@ -132,7 +132,7 @@ class Popup:
 
 class CallPopHandler:
     """ Main application handler """
-    
+
     pingtimeout = 5
     pinginterval = 120
     dbpath = os.path.expanduser('~/.callpoppy/numbers.db')
@@ -216,9 +216,9 @@ def main():
     handler.lookupdigits = conf['lookupdigits']
     # initialise our factory
     factory = CallPopFactory(conf['username'], conf['secret'], conf['server'], conf['port'])
-    
 
-    
+
+
     factory.connect_callback=handler.onLogin
     factory.maxDelay = 600
     factory.connect()
@@ -263,7 +263,7 @@ if __name__ == '__main__':
 
       conf['loglevel'] = config.getint('Logging', 'loglevel')
       conf['logfile'] = config.get('Logging', 'logfile')
-      
+
       conf['dbfile'] = config.get('Database', 'dbfile')
       conf['lookupdigits'] = config.getint('Database', 'digits')
 
@@ -284,7 +284,7 @@ if __name__ == '__main__':
       conf['extensions'] = {}
 
       for s in ext:
-        # annoyingly, ConfigParser.options returns all the defaults, so 
+        # annoyingly, ConfigParser.options returns all the defaults, so
         # we need to filter them out
         if s not in config.defaults().keys():
           conf['extensions'][s] = config.get('Extensions', s)
@@ -306,14 +306,14 @@ if __name__ == '__main__':
     lh.setFormatter(logformat)
 
     log.addHandler(lh)
-    
+
     # set up logging from starpy
     logging.getLogger('AMI').setLevel(loglevel)
     logging.getLogger('AMI').addHandler(lh)
-    
+
     log.debug("Configuration read from %s", conffile)
     log.debug("Configuration: %s", conf)
-    
+
     # On Gnome, ensure the script exits when the user
     # logs out.
     if hasGnome:
