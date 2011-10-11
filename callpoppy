@@ -28,6 +28,10 @@ You should have received a copy of the GNU Lesser General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 """
 
+__version_info__ = ('0', '1', '0')
+__version__ = '.'.join(__version_info__)
+
+
 from twisted.internet import gtk2reactor
 gtk2reactor.install(True)
 
@@ -311,6 +315,7 @@ if __name__ == '__main__':
     logging.getLogger('AMI').setLevel(loglevel)
     logging.getLogger('AMI').addHandler(lh)
 
+    log.info("Starting %s version %s", appname, __version__)
     log.debug("Configuration read from %s", conffile)
     log.debug("Configuration: %s", conf)
 
