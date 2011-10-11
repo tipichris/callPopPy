@@ -83,7 +83,7 @@ class Popup:
         log.debug("Attempting to use pynotify")
         import pynotify
         self.notifier = pynotify
-        self.notifier.init(appname)
+        self.notifier.init(params['appname'])
       except:
         log.warning("Unable to import pynotify. Using gtkPopupNotify instead")
         self.usePyNotify = False
@@ -120,6 +120,7 @@ class CallPopHandler:
     pingtimeout = 5
     pinginterval = 120
     dbpath = os.path.expanduser('~/.callpoppy/numbers.db')
+    lookupdigits = 10
 
     def __init__(self, extensions, popup):
         # set up connection to sqllite
@@ -127,13 +128,17 @@ class CallPopHandler:
         self.cursor = sqlconnection.cursor()
         self.extensions = extensions
         self.popup = popup
+        for k in self.extensions.keys():
+          log.debug("Extension configured: '%s': %s", k, self.extensions[k])
 
     def onDial(self, protocol, event):
-        log.debug("Got event %s" % (event,))
+        log.debug("Got event %s", event)
         if 'destination' in event:
           destination=event['destination'].lower()
           for s in self.extensions.keys():
+            log.debug("Checking destination %s against extension %s", destination, s.lower())
             if destination.startswith(s.lower()):
+              log.debug("Processing call for %s", s)
               cid=event['calleridnum']
               cidname=self.lookupnumber(cid,event['calleridname'])
               extname=self.extensions[s]
@@ -141,12 +146,13 @@ class CallPopHandler:
               self.popup.show("Incoming call for "+extname, cidname + "\n"+cid)
 
     def lookupnumber(self, cidnum, out):
-        idx = cidnum[-10:]
+        idx = cidnum[-self.lookupdigits:]
+        log.debug("Looking up number '%s'", idx)
         try:
           self.cursor.execute('SELECT name FROM numbers WHERE tel = ?', (idx,))
-          row = cursor.fetchone()
-        except:
-          log.debug("Number not found in database")
+          row = self.cursor.fetchone()
+        except Exception as e:
+          log.debug("Number not found in database: %s", e)
           return out
         if row:
           out = row[0]
@@ -184,14 +190,21 @@ class CallPopHandler:
         df.addCallback(success)
         df.addErrback(ontimeout)
 
-
 def main():
     # initialise our notifier
-    popup = Popup(usePyNotify, popupparams)
-    handler = CallPopHandler(extensions, popup)
-    factory = CallPopFactory(username, secret, server, port)
+    popup = Popup(conf['usePyNotify'], conf['popupparams'])
+    # initialis our handler, passing the notifier to it
+    handler = CallPopHandler(conf['extensions'], popup)
+    # some handler configuration
+    handler.dbpath = conf['dbfile']
+    handler.lookupdigits = conf['lookupdigits']
+    # initialise our factory
+    factory = CallPopFactory(conf['username'], conf['secret'], conf['server'], conf['port'])
+    
+    # set up logging from starpy
     logging.getLogger('AMI').setLevel(loglevels[loglevel])
     logging.getLogger('AMI').addHandler(lh)
+    
     factory.cbconnect=handler.onLogin
     factory.maxDelay = 600
     factory.connect()
@@ -207,7 +220,7 @@ if __name__ == '__main__':
     # Keep our logs secret
     os.umask(0077);
 
-    config = ConfigParser.RawConfigParser({
+    config = ConfigParser.ConfigParser({
       'port': '5038',
       'uselibnotify': 'False',
       'background': '#171717',
@@ -218,39 +231,49 @@ if __name__ == '__main__':
       'y-offset': "0",
       'timeout': "6",
       'loglevel': "4",
-      'logfile': os.path.expanduser('~/.callpoppy/callpoppy.log')
+      'logfile': os.path.expanduser('~/.callpoppy/callpoppy.log'),
+      'dbfile': os.path.expanduser('~/.callpoppy/numbers.db'),
+      'digits': "10"
       })
 
     config.optionxform = str
     conffile = os.path.expanduser('~/.callpoppy/config')
+    conf = {}
     try:
       config.read(conffile)
 
-      server = config.get('Asterisk', 'server')
-      port = config.getint('Asterisk', 'port')
-      username = config.get('Asterisk', 'username')
-      secret = config.get('Asterisk', 'secret')
+      conf['server'] = config.get('Asterisk', 'server')
+      conf['port'] = config.getint('Asterisk', 'port')
+      conf['username'] = config.get('Asterisk', 'username')
+      conf['secret'] = config.get('Asterisk', 'secret')
 
-      loglevel = config.getint('Logging', 'loglevel')
-      logfile = config.get('Logging', 'logfile')
+      conf['loglevel'] = config.getint('Logging', 'loglevel')
+      conf['logfile'] = config.get('Logging', 'logfile')
+      
+      conf['dbfile'] = config.get('Database', 'dbfile')
+      conf['lookupdigits'] = config.getint('Database', 'digits')
 
-      popupparams = {}
-      popupparams['bg'] = config.get('Popup', 'background')
-      popupparams['fg'] = config.get('Popup', 'foreground')
-      popupparams['top'] = config.getboolean('Popup', 'top')
-      popupparams['left'] = config.getboolean('Popup', 'left')
-      popupparams['xoff'] = config.getint('Popup', 'x-offset')
-      popupparams['yoff'] = config.getint('Popup', 'y-offset')
-      popupparams['timeout'] = config.getint('Popup', 'timeout')
+      conf['popupparams'] = {}
+      conf['popupparams']['bg'] = config.get('Popup', 'background')
+      conf['popupparams']['fg'] = config.get('Popup', 'foreground')
+      conf['popupparams']['top'] = config.getboolean('Popup', 'top')
+      conf['popupparams']['left'] = config.getboolean('Popup', 'left')
+      conf['popupparams']['xoff'] = config.getint('Popup', 'x-offset')
+      conf['popupparams']['yoff'] = config.getint('Popup', 'y-offset')
+      conf['popupparams']['timeout'] = config.getint('Popup', 'timeout')
+      conf['popupparams']['appname'] = appname
 
-      usePyNotify = config.getboolean('Popup', 'uselibnotify')
+      conf['usePyNotify'] = config.getboolean('Popup', 'uselibnotify')
 
       ext = config.options('Extensions')
 
-      extensions = {}
+      conf['extensions'] = {}
 
       for s in ext:
-        extensions[s] = config.get('Extensions', s)
+        # annoyingly, ConfigParser.options returns all the defaults, so 
+        # we need to filter them out
+        if s not in config.defaults().keys():
+          conf['extensions'][s] = config.get('Extensions', s)
 
     except ConfigParser.Error as conferr:
       sys.exit(appname + " could not read the configuration file '" + conffile +"':\n" + conferr.__str__())
@@ -258,18 +281,21 @@ if __name__ == '__main__':
     # Set up logging
     log = logging.getLogger(appname)
     loglevels = [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
-    loglevel = loglevel - 1
+    loglevel = conf['loglevel'] - 1
     log.setLevel(loglevels[loglevel])
 
     # create log handler and set level to debug
-    lh = logging.handlers.RotatingFileHandler(logfile, 'a', 102400, 3)
+    lh = logging.handlers.RotatingFileHandler(conf['logfile'], 'a', 102400, 3)
     lh.setLevel(logging.DEBUG)
 
     logformat = logging.Formatter('%(asctime)s %(name)s: %(levelname)s %(message)s')
     lh.setFormatter(logformat)
 
     log.addHandler(lh)
-
+    
+    log.debug("Configuration read from %s", conffile)
+    log.debug("Configuration: %s", conf)
+    
     # On Gnome, ensure the script exits when the user
     # logs out.
     if hasGnome:

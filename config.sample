@@ -107,3 +107,19 @@ secret: topsecret
 # <homedir>/.callpoppy/callpoppy.log
 # eg
 ;logfile=/var/log/callpoppy.log
+
+#####################################################################
+# This section configures the SQLite database used for looking up
+# numbers. All values are optional, but the section must exist
+
+[Database]
+
+# The path to the SQLite database. Default is 
+# <homedir>/.callpoppy/config
+# eg
+;dbfile=/var/db/callpoppy.db
+
+# The number of digits contained in the lookup table. See README. 
+# Default is 10, which works well for the UK. 
+# eg
+;digits=10
