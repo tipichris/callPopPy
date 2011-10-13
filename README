@@ -25,9 +25,9 @@ callPopPy is a Python script. It requires Python
 callPopPy uses the starPy library to interact with Asterisk. Grab that 
 from http://www.vrplumber.com/programming/starpy/
 
-Other requirements will probably be present on a Linux system with a 
-modernish python installed. Windows users should refer to 
-README-WINDOWS.txt. They include:
+Other requirements will probably be present on a modernish Linux system. 
+Windows users should refer to README-WINDOWS.txt. Other requirements 
+include:
 
 pysqlite2
 twisted.internet

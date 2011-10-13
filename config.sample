@@ -56,12 +56,14 @@ secret: topsecret
 # earlier by the user. Default 6. eg
 ;timeout: 10
 
-# On Gnome based Linux distros, such as Ubuntu, you can optionally use
+# On Gnome based Linux distros, such as Ubuntu, callPopPy will use
 # libnotify to provide the popups. This has tighter integration with
-# operating system, but is less flexible. If you set uselibnotify to
-# yes, the rest of the options in the Popup section (except for 
-# timeout) have no effect. eg
-;uselibnotify: yes
+# operating system and uses less memory, but is less flexible. 
+# To force callPopPy to use gtkPopupNotify even if libnotify is 
+# available, set this to 'no'
+# Note that if libnotify is used, the rest of the settings in this section
+# have no effect.
+;uselibnotify: no
 
 # If set to 1 the popup is aligned to the top of the screen. If set 
 # to 0, it is aligned to the bottom. eg

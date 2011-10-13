@@ -51,7 +51,7 @@ Drag and drop the '.egg' file on to this and zope should be installed.
 starPy
 ------
 
-Grap the source from
+Grab the source from
 
 http://www.vrplumber.com/programming/starpy/
 
