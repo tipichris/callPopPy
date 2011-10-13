@@ -25,12 +25,17 @@ callPopPy is a Python script. It requires Python
 callPopPy uses the starPy library to interact with Asterisk. Grab that 
 from http://www.vrplumber.com/programming/starpy/
 
-Other requirements will probably be present on a system with a 
-modernish python installed. They include:
+Other requirements will probably be present on a Linux system with a 
+modernish python installed. Windows users should refer to 
+README-WINDOWS.txt. They include:
 
 pysqlite2
 twisted.internet
-gtk2 or pynotify
+  zope.interface
+gobject
+gtk2
+
+
 
 Installation
 ============
@@ -49,6 +54,9 @@ Copy config.sample into this directory, edit it and rename it to
 config, ie you should now have a file at
 
 <homedirectory>/.callpoppy/config
+
+If you're not sure where it should be, just run callPopPy anyway and
+the resulting error message should help you.
 
 Create a SQLite database at <homedirectory>/.callpoppy/numbers.db (see
 later).

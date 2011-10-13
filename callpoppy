@@ -131,8 +131,25 @@ class Popup:
       n.set_timeout(self.timeout * 1000)
       n.show()
     else:
-      log.debug("Notifying with gtkPopupNotify")
-      self.notifier.new_popup(title=escape(title), message=escape(message), image=os.path.join(sys.path[0], 'call-start.png'))
+      # getting the current path depends on whether we're a compiled
+      # binary, or a script being run through the interpreter
+      # http://stackoverflow.com/questions/1511461/py2exe-and-the-file-system
+      frozen = getattr(sys, 'frozen', '')
+      if not frozen:
+          # not frozen: in regular python interpreter
+          approot = sys.path[0]
+      elif frozen in ('dll', 'console_exe', 'windows_exe'):
+          # py2exe:
+          approot = os.path.dirname(sys.executable)
+      elif frozen in ('macosx_app',):
+          # py2app:
+          # Notes on how to find stuff on MAC, by an expert (Bob Ippolito):
+          # http://mail.python.org/pipermail/pythonmac-sig/2004-November/012121.html
+          approot = os.environ['RESOURCEPATH']
+       
+      imagepath=os.path.join(approot, 'call-start.png')
+      log.debug("Notifying with gtkPopupNotify (image at %s)", imagepath)
+      self.notifier.new_popup(title=escape(title), message=escape(message), image=imagepath)
     return True
 
 class CallPopHandler:
