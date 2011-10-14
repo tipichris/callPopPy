@@ -177,7 +177,11 @@ class CallPopHandler:
             log.debug("Checking destination %s against extension %s", destination, s.lower())
             if destination.startswith(s.lower()):
               log.debug("Processing call for %s", s)
-              cid=event['calleridnum']
+              if 'calleridnum' in event:
+                cid=event['calleridnum']
+              else :
+                # earlier versions of Asterisk used callerid rather than calleridnum
+                cid = event['callerid']
               cidname=self.lookupnumber(cid,event['calleridname'])
               extname=self.extensions[s]
               log.info("Call from %s (%s) for %s", cidname, cid, extname)
