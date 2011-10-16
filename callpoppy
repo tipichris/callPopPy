@@ -29,7 +29,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__version_info__ = ('0', '1', '0')
+__version_info__ = ('0', '1', '0rc2')
 __version__ = '.'.join(__version_info__)
 
 
@@ -157,7 +157,7 @@ class CallPopHandler:
 
     pingtimeout = 5
     pinginterval = 120
-    dbpath = os.path.expanduser('~/.callpoppy/numbers.db')
+    dbpath = os.path.expanduser('~/.callpoppy/callpoppy.db')
     lookupdigits = 10
 
     def __init__(self, extensions, popup):
@@ -272,7 +272,7 @@ if __name__ == '__main__':
       'timeout': "6",
       'loglevel': "4",
       'logfile': os.path.expanduser('~/.callpoppy/callpoppy.log'),
-      'dbfile': os.path.expanduser('~/.callpoppy/numbers.db'),
+      'dbfile': os.path.expanduser('~/.callpoppy/callpoppy.db'),
       'digits': "10"
       })
 

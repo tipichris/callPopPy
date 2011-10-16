@@ -117,7 +117,7 @@ secret: topsecret
 [Database]
 
 # The path to the SQLite database. Default is 
-# <homedir>/.callpoppy/config
+# <homedir>/.callpoppy/callpoppy.db
 # eg
 ;dbfile: /var/db/callpoppy.db
 

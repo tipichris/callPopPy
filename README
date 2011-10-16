@@ -58,7 +58,7 @@ config, ie you should now have a file at
 If you're not sure where it should be, just run callPopPy anyway and
 the resulting error message should help you.
 
-Create a SQLite database at <homedirectory>/.callpoppy/numbers.db (see
+Create a SQLite database at <homedirectory>/.callpoppy/callpoppy.db (see
 later).
 
 Now run callpoppy. From the directory to which you unpacked it:
@@ -101,8 +101,9 @@ a popup titled "Incoming call for John" when it detects one.
 Database
 ========
 callPopPy expects to find a SQLite database at
-<homedirectory>/.callpoppy/numbers.db. Other utilities should 
-maintain this database.
+<homedirectory>/.callpoppy/callpoppy.db. Other utilities should 
+maintain this database, such as Squalit 
+(http://www.oak-wood.co.uk/callpopy/squalit).
 
 The database must contains at least a table named 'numbers'. 
 
@@ -134,3 +135,4 @@ or if the table 'numbers' contains additional fields.
 
 A Thunderbird extension, Squalit, is available that can create and
 maintain a suitable database from Thunderbird's address book.
+http://www.oak-wood.co.uk/callpopy/squalit
