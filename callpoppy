@@ -189,12 +189,14 @@ class CallPopHandler:
 
     def lookupnumber(self, cidnum, out):
         idx = cidnum[-self.lookupdigits:]
+        if len(cidnum) > self.lookupdigits:
+          idx = '%' + idx
         log.debug("Looking up number '%s'", idx)
         try:
-          self.cursor.execute('SELECT name FROM numbers WHERE tel = ?', (idx,))
+          self.cursor.execute('SELECT name FROM numbers WHERE tel LIKE ?', (idx,))
           row = self.cursor.fetchone()
         except Exception as e:
-          log.debug("Number not found in database: %s", e)
+          log.debug("Error searching for number: %s", e)
           return out
         if row:
           out = row[0]
