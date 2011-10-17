@@ -191,7 +191,7 @@ class CallPopHandler:
         idx = cidnum[-self.lookupdigits:]
         if len(cidnum) > self.lookupdigits:
           idx = '%' + idx
-        log.debug("Looking up number '%s'", idx)
+        log.debug("Looking up number LIKE '%s'", idx)
         try:
           self.cursor.execute('SELECT name FROM numbers WHERE tel LIKE ?', (idx,))
           row = self.cursor.fetchone()
