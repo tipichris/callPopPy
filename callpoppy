@@ -153,7 +153,7 @@ class Popup:
     imagepath=os.path.join(self.approot, 'call-start.png')
 
     if self.usePyNotify:
-      log.debug("Notifying with pynotifier")
+      log.debug("Notifying with pynotifier (image at %s)", imagepath)
       if self.caps and 'body-markup' in self.caps:
         title = self.escape(title)
         message = self.escape(message)
@@ -162,7 +162,7 @@ class Popup:
       n.show()
     else:
       log.debug("Notifying with gtkPopupNotify (image at %s)", imagepath)
-      self.notifier.new_popup(title=self.escape(title), message=self.escape(message), image=imagepath)
+      self.notifier.new_popup(self.escape(title), self.escape(message), imagepath)
     return True
 
 class CallPopHandler:
@@ -257,8 +257,6 @@ def main():
     handler.lookupdigits = conf['lookupdigits']
     # initialise our factory
     factory = CallPopFactory(conf['username'], conf['secret'], conf['server'], conf['port'])
-
-
 
     factory.connect_callback=handler.onLogin
     factory.maxDelay = 600

@@ -53,12 +53,13 @@ secret: topsecret
 [Popup]
 
 # The period, in seconds, after which the pop will close if not closed
-# earlier by the user. Default 6. eg
+# earlier by the user. Default 6. Note on more recent Gnome systems 
+# using Notify-OSD and pynotify, this is ignored. eg
 ;timeout: 10
 
 # On Gnome based Linux distros, such as Ubuntu, callPopPy will use
-# libnotify to provide the popups. This has tighter integration with
-# operating system and uses less memory, but is less flexible. 
+# libnotify/Notify-OSD to provide the popups. This has tighter integration 
+# with the operating system and uses less memory, but is less flexible. 
 # To force callPopPy to use gtkPopupNotify even if libnotify is 
 # available, set this to 'no'
 # Note that if libnotify is used, the rest of the settings in this section
