@@ -110,22 +110,24 @@ The database must contains at least a table named 'numbers'.
 This table should contain at least a field 'tel' and a field 'name'.
 Duplicates should not be allowed in 'tel'. A suggested schema is:
 
-CREATE TABLE numbers (id INTEGER PRIMARY KEY, tel VARCHAR(10) UNIQUE, name VARCHAR(255))
+CREATE TABLE numbers (id INTEGER PRIMARY KEY, tel VARCHAR(20) UNIQUE, name VARCHAR(255))
 
-The 'tel' field should contain the last 10 digits of a phone number,
-with all punctuation (hyphens, spaces, periods, brackets) stripped.
-The number of digits is configurable (in the [Database] section of
-config, the 'digits' key), but in the UK at least, 10 seems a good
-figure. 
+The 'tel' field should contain the phone number, with all punctuation 
+(hyphens, spaces, periods, brackets) stripped. callPopPy checks against
+only the last 10 digits of this number. The number of digits is 
+configurable (in the [Database] section of config, the 'digits' key), 
+but in the UK at least, 10 seems a good figure.
 
 The reason for using only the last 10 digits is to get around 
 inconsistencies in the way in which different providers and trunks
-report calling numbers, some with country codes, some without. For
-example, the UK number 01926 410410 may appear as any of
+report calling numbers, some with country codes, some without, some 
+with dial prefixes. For example, the UK number 01926 410410 may appear
+as any of
 
 01926410410
 00441926410410
 +441926410410
+901926410410
 
 What is consistent is that the last ten digits are always
 1926410410
