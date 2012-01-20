@@ -29,7 +29,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__version_info__ = ('0', '1', '1rc1')
+__version_info__ = ('0', '1', '2')
 __version__ = '.'.join(__version_info__)
 
 
@@ -45,7 +45,15 @@ import logging.handlers
 import sys
 import os
 import os.path
-from pysqlite2 import dbapi2 as sqlite
+try:
+  from sqlite3 import dbapi2 as sqlite # python 2.5
+except:
+  try:
+    from pysqlite2 import dbapi2 as sqlite
+  except:
+    print 'This program requires pysqlite2\n',\
+    'http://initd.org/tracker/pysqlite/'
+    sys.exit(1)
 import ConfigParser
 
 hasGnome = True
