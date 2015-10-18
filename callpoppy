@@ -9,7 +9,7 @@ and notify the name associated with the caller. Maintaining the SQLite
 database is a job for something else - a Thunderbird extension, Squalit,
 exists to do this from a Thunderbird address book.
 
-Copyright 2011 Chris Hastie
+Copyright 2011 - 2015 Chris Hastie
 
 Contains code originally released as pyCalledMe by Olivier H. Beauchesne
 and Copyright 2009 Olivier H. Beauchesne
@@ -29,7 +29,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__version_info__ = ('0', '1', '2')
+__version_info__ = ('0', '2', '0')
 __version__ = '.'.join(__version_info__)
 
 
@@ -56,13 +56,79 @@ except:
     sys.exit(1)
 import ConfigParser
 
+import gtk
+
 hasGnome = True
 try:
   import gnome.ui
 except:
   hasGnome = False
 
+class cpStatusIcon():
+	def __init__(self, icon):
+		self.tray = gtk.StatusIcon()
+		self.tray.set_from_file(icon) 
+		self.tray.set_visible(True)
+		self.tray.connect('popup-menu', self.on_right_click)
+		self.tray.set_tooltip(appname + "\nMonitoring extensions:\n" + ', '.join(conf['extensions'].keys()))
+		
 
+    	def on_right_click(self, icon, event_button, event_time):
+		self.make_menu(event_button, event_time)
+
+    	def make_menu(self, event_button, event_time):
+		menu = gtk.Menu()
+
+		# show about dialog
+		about = gtk.MenuItem("About")
+		about.show()
+		menu.append(about)
+		about.connect('activate', self.show_about_dialog)
+
+		# add quit item
+		quit = gtk.MenuItem("Quit")
+		quit.show()
+		menu.append(quit)
+		quit.connect('activate', killapp)
+
+		menu.popup(None, None, gtk.status_icon_position_menu,
+		           event_button, event_time, self.tray)
+
+	# This seems needed to run in a thread
+	def __call__(self):
+	    return True
+	
+	def  show_about_dialog(self, widget):
+		about_dialog = gtk.AboutDialog()
+		about_dialog.set_destroy_with_parent (True)
+		about_dialog.set_icon_name (appname)
+		about_dialog.set_name(appname)
+		about_dialog.set_version(__version__)
+		about_dialog.set_copyright("(C) 2011 - 2015 Chris Hastie")
+		license = """This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>"""
+		about_dialog.set_license(license)
+		about_dialog.set_website('http://www.oak-wood.co.uk/oss/callpoppy')
+		about_dialog.set_comments(("Pop up who's calling an Asterisk PBX"))
+		about_dialog.set_authors(['Chris Hastie <chris@oak-wood.co.uk>'])
+		about_dialog.run()
+		about_dialog.destroy()
+		
+	def remove(self):
+	    self.tray.set_visible(False)
+
+	def changeToolTip(self, tooltip):
+	    self.tray.set_tooltip(tooltip)
 
 class CallPopFactory(ReconnectingClientFactory):
     """ Factory for connection. Subclassed from ReconnectingClientFactory
@@ -95,6 +161,8 @@ class CallPopFactory(ReconnectingClientFactory):
         df = self.login(self.server, self.port)
         if self.connect_callback!=None:
             df.addCallback(self.connect_callback)
+		
+
 
 class Popup:
   """ Abstraction layer to handle popup notifications. Provides a consistent
@@ -104,6 +172,7 @@ class Popup:
   def __init__(self, usePyNotify, params):
     self.timeout = params['timeout']
     self.usePyNotify = usePyNotify
+    self.imagepath = params['imagepath']
 
     if self.usePyNotify:
       try:
@@ -131,24 +200,6 @@ class Popup:
       self.notifier.fg_color = gtk.gdk.Color(params['fg'])
       self.notifier.fontdesc = ("Sans Bold 10", "Sans 10", "Sans 10")
 
-    # getting the current path depends on whether we're a compiled
-    # binary, or a script being run through the interpreter
-    # http://stackoverflow.com/questions/1511461/py2exe-and-the-file-system
-    frozen = getattr(sys, 'frozen', '')
-    if not frozen:
-        # not frozen: in regular python interpreter
-        self.approot = sys.path[0]
-    elif frozen in ('dll', 'console_exe', 'windows_exe'):
-        # py2exe:
-        self.approot = os.path.dirname(sys.executable)
-    elif frozen in ('macosx_app',):
-        # py2app:
-        # Notes on how to find stuff on MAC, by an expert (Bob Ippolito):
-        # http://mail.python.org/pipermail/pythonmac-sig/2004-November/012121.html
-        self.approot = os.environ['RESOURCEPATH']
-    else:
-        self.approot = sys.path[0]
-
   def escape(self, text):
     text = text.replace('&', '&amp;')
     text = text.replace('<', '&lt;')
@@ -158,19 +209,18 @@ class Popup:
   def show(self, title, message):
     log.debug("Popup.show called")
 
-    imagepath=os.path.join(self.approot, 'call-start.png')
 
     if self.usePyNotify:
-      log.debug("Notifying with pynotifier (image at %s)", imagepath)
+      log.debug("Notifying with pynotifier (image at %s)", self.imagepath)
       if self.caps and 'body-markup' in self.caps:
         title = self.escape(title)
         message = self.escape(message)
-      n=self.notifier.Notification(title,message,imagepath)
+      n=self.notifier.Notification(title,message,self.imagepath)
       n.set_timeout(self.timeout * 1000)
       n.show()
     else:
-      log.debug("Notifying with gtkPopupNotify (image at %s)", imagepath)
-      self.notifier.new_popup(self.escape(title), self.escape(message), imagepath)
+      log.debug("Notifying with gtkPopupNotify (image at %s)", self.imagepath)
+      self.notifier.new_popup(self.escape(title), self.escape(message), self.imagepath)
     return True
 
 class CallPopHandler:
@@ -181,12 +231,13 @@ class CallPopHandler:
     dbpath = os.path.expanduser('~/.callpoppy/callpoppy.db')
     lookupdigits = 10
 
-    def __init__(self, extensions, popup):
+    def __init__(self, extensions, popup, statusicon):
         # set up connection to sqllite
         sqlconnection = sqlite.connect(self.dbpath)
         self.cursor = sqlconnection.cursor()
         self.extensions = extensions
         self.popup = popup
+        self.statusicon = statusicon
         for k in self.extensions.keys():
           log.debug("Extension configured: '%s': %s", k, self.extensions[k])
 
@@ -225,6 +276,7 @@ class CallPopHandler:
 
     def onLogin(self, protocol):
         log.debug('Resetting reconnection delay')
+        self.statusicon.changeToolTip(appname + "\nMonitoring extensions:\n" + ', '.join(self.extensions.keys()))
         protocol.factory.resetDelay()
         df = protocol.registerEvent("Dial",self.onDial)
         self.timeouttask = task.LoopingCall(self.pinglink, protocol)
@@ -234,6 +286,7 @@ class CallPopHandler:
     def pinglink(self, protocol):
         def ontimeout():
             log.debug("Unexpected response or timeout waiting. Closing connection")
+            self.statusicon.changeToolTip(appname + ": Connection lost")
             if dc.active():
                 dc.cancel()
             self.timeouttask.stop()
@@ -257,9 +310,11 @@ class CallPopHandler:
 
 def main():
     # initialise our notifier
+    popupparams = conf['popupparams']
+    popupparams['imagepath'] = cpicon
     popup = Popup(conf['usePyNotify'], conf['popupparams'])
     # initialis our handler, passing the notifier to it
-    handler = CallPopHandler(conf['extensions'], popup)
+    handler = CallPopHandler(conf['extensions'], popup, cpsi)
     # some handler configuration
     handler.dbpath = conf['dbfile']
     handler.lookupdigits = conf['lookupdigits']
@@ -269,14 +324,21 @@ def main():
     factory.connect_callback=handler.onLogin
     factory.maxDelay = 600
     factory.connect()
+    
 
 def killapp(*args):
     reactor.stop()
     return True
 
+def cleanup():
+    log.info("Cleaning up...")
+    if cpsi:
+        cpsi.remove()
+    
+
 if __name__ == '__main__':
 
-    appname = 'callpoppy'
+    appname = 'CallPoppy'
 
     # Keep our logs secret
     os.umask(0077);
@@ -361,13 +423,36 @@ if __name__ == '__main__':
     log.info("Starting %s version %s", appname, __version__)
     log.debug("Configuration read from %s", conffile)
     log.debug("Configuration: %s", conf)
-
-    # On Gnome, ensure the script exits when the user
+	
+    # getting the current path depends on whether we're a compiled
+    # binary, or a script being run through the interpreter
+    # http://stackoverflow.com/questions/1511461/py2exe-and-the-file-system
+    frozen = getattr(sys, 'frozen', '')
+    if not frozen:
+        # not frozen: in regular python interpreter
+        approot = sys.path[0]
+    elif frozen in ('dll', 'console_exe', 'windows_exe'):
+        # py2exe:
+        approot = os.path.dirname(sys.executable)
+    elif frozen in ('macosx_app',):
+        # py2app:
+        # Notes on how to find stuff on MAC, by an expert (Bob Ippolito):
+        # http://mail.python.org/pipermail/pythonmac-sig/2004-November/012121.html
+        approot = os.environ['RESOURCEPATH']
+    else:
+        approot = sys.path[0]
+    
+    cpicon=os.path.join(approot, 'call-start.png')
+    
+	# On Gnome, ensure the script exits when the user
     # logs out.
     if hasGnome:
       gnome.program_init (appname, "1.0")
       client = gnome.ui.master_client()
       client.connect("save-yourself", killapp)
 
+    #reactor.callInThread(cpStatusIcon(cpicon))
+    cpsi = cpStatusIcon(cpicon)
     reactor.callWhenRunning(main)
+    reactor.addSystemEventTrigger('before', 'shutdown', cleanup)
     reactor.run()
