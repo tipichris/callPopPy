@@ -65,47 +65,47 @@ except:
   hasGnome = False
 
 class cpStatusIcon():
-	def __init__(self, icon):
-		self.tray = gtk.StatusIcon()
-		self.tray.set_from_file(icon) 
-		self.tray.set_visible(True)
-		self.tray.connect('popup-menu', self.on_right_click)
-		self.tray.set_tooltip(appname + "\nMonitoring extensions:\n" + ', '.join(conf['extensions'].keys()))
-		
+    def __init__(self, icon):
+        self.tray = gtk.StatusIcon()
+        self.tray.set_from_file(icon) 
+        self.tray.set_visible(True)
+        self.tray.connect('popup-menu', self.on_right_click)
+        self.tray.set_tooltip(appname + "\nMonitoring extensions:\n" + ', '.join(conf['extensions'].keys()))
+        
 
-    	def on_right_click(self, icon, event_button, event_time):
-		self.make_menu(event_button, event_time)
+    def on_right_click(self, icon, event_button, event_time):
+        self.make_menu(event_button, event_time)
 
-    	def make_menu(self, event_button, event_time):
-		menu = gtk.Menu()
+    def make_menu(self, event_button, event_time):
+        menu = gtk.Menu()
 
-		# show about dialog
-		about = gtk.MenuItem("About")
-		about.show()
-		menu.append(about)
-		about.connect('activate', self.show_about_dialog)
+        # show about dialog
+        about = gtk.MenuItem("About")
+        about.show()
+        menu.append(about)
+        about.connect('activate', self.show_about_dialog)
 
-		# add quit item
-		quit = gtk.MenuItem("Quit")
-		quit.show()
-		menu.append(quit)
-		quit.connect('activate', killapp)
+        # add quit item
+        quit = gtk.MenuItem("Quit")
+        quit.show()
+        menu.append(quit)
+        quit.connect('activate', killapp)
 
-		menu.popup(None, None, gtk.status_icon_position_menu,
-		           event_button, event_time, self.tray)
+        menu.popup(None, None, gtk.status_icon_position_menu,
+                   event_button, event_time, self.tray)
 
-	# This seems needed to run in a thread
-	def __call__(self):
-	    return True
-	
-	def  show_about_dialog(self, widget):
-		about_dialog = gtk.AboutDialog()
-		about_dialog.set_destroy_with_parent (True)
-		about_dialog.set_icon_name (appname)
-		about_dialog.set_name(appname)
-		about_dialog.set_version(__version__)
-		about_dialog.set_copyright("(C) 2011 - 2015 Chris Hastie")
-		license = """This program is free software: you can redistribute it and/or modify
+    # This seems needed to run in a thread
+    def __call__(self):
+        return True
+    
+    def  show_about_dialog(self, widget):
+        about_dialog = gtk.AboutDialog()
+        about_dialog.set_destroy_with_parent (True)
+        about_dialog.set_icon_name (appname)
+        about_dialog.set_name(appname)
+        about_dialog.set_version(__version__)
+        about_dialog.set_copyright("(C) 2011 - 2015 Chris Hastie")
+        license = """This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
@@ -116,19 +116,19 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>"""
-		about_dialog.set_license(license)
-		about_dialog.set_website('http://www.oak-wood.co.uk/oss/callpoppy')
-		about_dialog.set_comments(("Pop up who's calling an Asterisk PBX"))
-		about_dialog.set_authors(['Chris Hastie <chris@oak-wood.co.uk>'])
-		about_dialog.run()
-		about_dialog.destroy()
-		
-	def remove(self):
-	    self.tray.set_visible(False)
+along with this program.  If not, see http://www.gnu.org/licenses/"""
+        about_dialog.set_license(license)
+        about_dialog.set_website('http://www.oak-wood.co.uk/oss/callpoppy')
+        about_dialog.set_comments(("Pop up who's calling an Asterisk PBX"))
+        about_dialog.set_authors(['Chris Hastie <chris@oak-wood.co.uk>'])
+        about_dialog.run()
+        about_dialog.destroy()
+        
+    def remove(self):
+        self.tray.set_visible(False)
 
-	def changeToolTip(self, tooltip):
-	    self.tray.set_tooltip(tooltip)
+    def changeToolTip(self, tooltip):
+        self.tray.set_tooltip(tooltip)
 
 class CallPopFactory(ReconnectingClientFactory):
     """ Factory for connection. Subclassed from ReconnectingClientFactory
@@ -161,7 +161,7 @@ class CallPopFactory(ReconnectingClientFactory):
         df = self.login(self.server, self.port)
         if self.connect_callback!=None:
             df.addCallback(self.connect_callback)
-		
+
 
 
 class Popup:
@@ -423,7 +423,7 @@ if __name__ == '__main__':
     log.info("Starting %s version %s", appname, __version__)
     log.debug("Configuration read from %s", conffile)
     log.debug("Configuration: %s", conf)
-	
+
     # getting the current path depends on whether we're a compiled
     # binary, or a script being run through the interpreter
     # http://stackoverflow.com/questions/1511461/py2exe-and-the-file-system
@@ -444,7 +444,7 @@ if __name__ == '__main__':
     
     cpicon=os.path.join(approot, 'call-start.png')
     
-	# On Gnome, ensure the script exits when the user
+    # On Gnome, ensure the script exits when the user
     # logs out.
     if hasGnome:
       gnome.program_init (appname, "1.0")
