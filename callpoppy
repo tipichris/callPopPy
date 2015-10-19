@@ -100,12 +100,12 @@ class cpStatusIcon():
         return True
     
     def  show_about_dialog(self, widget):
-        about_dialog = gtk.AboutDialog()
-        about_dialog.set_destroy_with_parent (True)
-        about_dialog.set_icon_name (appname)
-        about_dialog.set_name(appname)
-        about_dialog.set_version(__version__)
-        about_dialog.set_copyright("(C) 2011 - 2015 Chris Hastie")
+        self.about_dialog = gtk.AboutDialog()
+        self.about_dialog.set_destroy_with_parent (True)
+        self.about_dialog.set_icon_name (appname)
+        self.about_dialog.set_name(appname)
+        self.about_dialog.set_version(__version__)
+        self.about_dialog.set_copyright("(C) 2011 - 2015 Chris Hastie")
         license = """This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -118,12 +118,12 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see http://www.gnu.org/licenses/"""
-        about_dialog.set_license(license)
-        about_dialog.set_website('http://www.oak-wood.co.uk/oss/callpoppy')
-        about_dialog.set_comments(("Pop up who's calling an Asterisk PBX"))
-        about_dialog.set_authors(['Chris Hastie <chris@oak-wood.co.uk>'])
-        about_dialog.run()
-        about_dialog.destroy()
+        self.about_dialog.set_license(license)
+        self.about_dialog.set_website('http://www.oak-wood.co.uk/oss/callpoppy')
+        self.about_dialog.set_comments(("Pop up who's calling an Asterisk PBX"))
+        self.about_dialog.set_authors(['Chris Hastie <chris@oak-wood.co.uk>'])
+        self.about_dialog.run()
+        self.about_dialog.destroy()
         
     def remove(self):
         self.tray.set_visible(False)
@@ -347,6 +347,8 @@ def cleanup():
     log.info("Cleaning up...")
     if cpsi:
         cpsi.remove()
+        if hasattr(cpsi, 'about_dialog'):
+          cpsi.about_dialog.destroy()
     
 
 if __name__ == '__main__':
