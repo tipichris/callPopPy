@@ -65,12 +65,13 @@ except:
   hasGnome = False
 
 class cpStatusIcon():
-    def __init__(self, icon):
+    def __init__(self, iconpath):
+        self.iconpath = iconpath
         self.tray = gtk.StatusIcon()
-        self.tray.set_from_file(icon) 
+        self.tray.set_from_file(os.path.join(self.iconpath, 'call-start-grey.png')) 
         self.tray.set_visible(True)
         self.tray.connect('popup-menu', self.on_right_click)
-        self.tray.set_tooltip(appname + "\nMonitoring extensions:\n" + ', '.join(conf['extensions'].keys()))
+        self.tray.set_tooltip(appname + "\nWaiting to connect...")
         
 
     def on_right_click(self, icon, event_button, event_time):
@@ -128,7 +129,12 @@ along with this program.  If not, see http://www.gnu.org/licenses/"""
         self.tray.set_visible(False)
 
     def changeToolTip(self, tooltip):
+        log.debug("Updating tooltip to: '" + tooltip + "'")
         self.tray.set_tooltip(tooltip)
+        
+    def changeIcon(self, icon):
+        log.debug("Changing icon to: '" + icon + "'")
+        self.tray.set_from_file(os.path.join(self.iconpath, icon)) 
 
 class CallPopFactory(ReconnectingClientFactory):
     """ Factory for connection. Subclassed from ReconnectingClientFactory
@@ -137,11 +143,12 @@ class CallPopFactory(ReconnectingClientFactory):
     protocol = AMIProtocol
     connect_callback=None
 
-    def __init__(self, username, secret, server='localhost', port=5038):
+    def __init__(self, username, secret, server='localhost', port=5038, statusicon=None):
         self.username = username
         self.secret = secret
         self.server = server
         self.port = port
+        self.statusicon = statusicon
 
     def login( self, ip='localhost', port=5038, timeout=5 ):
         self.loginDefer = defer.Deferred()
@@ -150,10 +157,14 @@ class CallPopFactory(ReconnectingClientFactory):
 
     def clientConnectionFailed(self, connector, reason):
         log.warning( 'Connection failed. Reason: %s', reason)
+        self.statusicon.changeToolTip(appname + ": Connection failed")
+        self.statusicon.changeIcon('call-start-grey.png')        
         ReconnectingClientFactory.clientConnectionFailed(self, self, reason)
 
     def clientConnectionLost(self, connector, reason):
         log.warning( 'Lost connection. Reason: %s', reason)
+        self.statusicon.changeToolTip(appname + ": Connection lost")
+        self.statusicon.changeIcon('call-start-grey.png')
         ReconnectingClientFactory.clientConnectionLost(self, self, reason)
 
     def connect(self):
@@ -277,6 +288,7 @@ class CallPopHandler:
     def onLogin(self, protocol):
         log.debug('Resetting reconnection delay')
         self.statusicon.changeToolTip(appname + "\nMonitoring extensions:\n" + ', '.join(self.extensions.keys()))
+        self.statusicon.changeIcon('call-start.png')
         protocol.factory.resetDelay()
         df = protocol.registerEvent("Dial",self.onDial)
         self.timeouttask = task.LoopingCall(self.pinglink, protocol)
@@ -287,6 +299,7 @@ class CallPopHandler:
         def ontimeout():
             log.debug("Unexpected response or timeout waiting. Closing connection")
             self.statusicon.changeToolTip(appname + ": Connection lost")
+            self.statusicon.changeIcon('call-start-grey.png')
             if dc.active():
                 dc.cancel()
             self.timeouttask.stop()
@@ -319,7 +332,7 @@ def main():
     handler.dbpath = conf['dbfile']
     handler.lookupdigits = conf['lookupdigits']
     # initialise our factory
-    factory = CallPopFactory(conf['username'], conf['secret'], conf['server'], conf['port'])
+    factory = CallPopFactory(conf['username'], conf['secret'], conf['server'], conf['port'], cpsi)
 
     factory.connect_callback=handler.onLogin
     factory.maxDelay = 600
@@ -452,7 +465,7 @@ if __name__ == '__main__':
       client.connect("save-yourself", killapp)
 
     #reactor.callInThread(cpStatusIcon(cpicon))
-    cpsi = cpStatusIcon(cpicon)
+    cpsi = cpStatusIcon(approot)
     reactor.callWhenRunning(main)
     reactor.addSystemEventTrigger('before', 'shutdown', cleanup)
     reactor.run()
