@@ -244,8 +244,8 @@ class CallPopHandler:
 
     def __init__(self, extensions, popup, statusicon):
         # set up connection to sqllite
-        sqlconnection = sqlite.connect(self.dbpath)
-        self.cursor = sqlconnection.cursor()
+        self.sqlconnection = sqlite.connect(self.dbpath)
+        # self.cursor = sqlconnection.cursor()
         self.extensions = extensions
         self.popup = popup
         self.statusicon = statusicon
@@ -276,8 +276,8 @@ class CallPopHandler:
           idx = '%' + idx
         log.debug("Looking up number LIKE '%s'", idx)
         try:
-          self.cursor.execute('SELECT name FROM numbers WHERE tel LIKE ?', (idx,))
-          row = self.cursor.fetchone()
+          row = self.sqlconnection.execute('SELECT name FROM numbers WHERE tel LIKE ?', (idx,)).fetchone()
+          # row = self.cursor.fetchone()
         except Exception as e:
           log.debug("Error searching for number: %s", e)
           return out
