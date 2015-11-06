@@ -250,7 +250,7 @@ class CallPopHandler:
         self.popup = popup
         self.statusicon = statusicon
         for k in self.extensions.keys():
-          log.debug("Extension configured: '%s': %s", k, self.extensions[k])
+          log.debug("Extension configured: '%s': %s", k, self.extensions[k]['name'])
 
     def onDial(self, protocol, event):
         log.debug("Got event %s", event)
@@ -258,8 +258,7 @@ class CallPopHandler:
           destination=event['destination'].lower()
           for s in self.extensions.keys():
             log.debug("Checking destination %s against extension %s", destination, s.lower())
-            t = re.compile('^' + s + r"(-\w+)?$", re.IGNORECASE)
-            if t.match(destination):
+            if self.extensions[s]['re'].match(destination):
               log.debug("Processing call for %s", s)
               if 'calleridnum' in event:
                 cid=event['calleridnum']
@@ -267,7 +266,7 @@ class CallPopHandler:
                 # earlier versions of Asterisk used callerid rather than calleridnum
                 cid = event['callerid']
               cidname=self.lookupnumber(cid,event['calleridname'])
-              extname=self.extensions[s]
+              extname=self.extensions[s]['name']
               log.info("Call from %s (%s) for %s", cidname, cid, extname)
               self.popup.show("Incoming call for "+extname, cidname + "\n"+cid)
 
@@ -411,7 +410,9 @@ if __name__ == '__main__':
         # annoyingly, ConfigParser.options returns all the defaults, so
         # we need to filter them out
         if s not in config.defaults().keys():
-          conf['extensions'][s] = config.get('Extensions', s)
+          conf['extensions'][s] = {}
+          conf['extensions'][s]['name'] = config.get('Extensions', s)
+          conf['extensions'][s]['re'] = re.compile('^' + s + r"(-\w+)?$", re.IGNORECASE)
 
     except ConfigParser.Error as conferr:
       sys.exit(appname + " could not read the configuration file '" + conffile +"':\n" + conferr.__str__())
