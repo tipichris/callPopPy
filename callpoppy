@@ -45,6 +45,7 @@ import logging.handlers
 import sys
 import os
 import os.path
+import re
 try:
   from sqlite3 import dbapi2 as sqlite # python 2.5
 except:
@@ -257,7 +258,8 @@ class CallPopHandler:
           destination=event['destination'].lower()
           for s in self.extensions.keys():
             log.debug("Checking destination %s against extension %s", destination, s.lower())
-            if destination.startswith(s.lower()):
+            t = re.compile('^' + s + r"(-\w+)?$", re.IGNORECASE)
+            if t.match(destination):
               log.debug("Processing call for %s", s)
               if 'calleridnum' in event:
                 cid=event['calleridnum']
