@@ -278,7 +278,7 @@ class CallPopHandler:
         try:
           row = self.sqlconnection.execute('SELECT name FROM numbers WHERE tel LIKE ?', (idx,)).fetchone()
         except Exception as e:
-          log.debug("Error searching for number: %s", e)
+          log.warning("Error searching for number: %s", e)
           return out
         if row:
           out = row[0]
