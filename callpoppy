@@ -9,7 +9,7 @@ and notify the name associated with the caller. Maintaining the SQLite
 database is a job for something else - a Thunderbird extension, Squalit,
 exists to do this from a Thunderbird address book.
 
-Copyright 2011 - 2015 Chris Hastie
+Copyright 2011 - 2019 Chris Hastie
 
 Contains code originally released as pyCalledMe by Olivier H. Beauchesne
 and Copyright 2009 Olivier H. Beauchesne
@@ -106,7 +106,7 @@ class cpStatusIcon():
         self.about_dialog.set_icon_name (appname)
         self.about_dialog.set_name(appname)
         self.about_dialog.set_version(__version__)
-        self.about_dialog.set_copyright("(C) 2011 - 2015 Chris Hastie")
+        self.about_dialog.set_copyright("(C) 2011 - 2019 Chris Hastie")
         license = """This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
