@@ -29,7 +29,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__version_info__ = ('0', '2', '0')
+__version_info__ = ('0', '2', '1')
 __version__ = '.'.join(__version_info__)
 
 
@@ -254,8 +254,13 @@ class CallPopHandler:
 
     def onDial(self, protocol, event):
         log.debug("Got event %s", event)
-        if 'destination' in event:
+        # check for both 'destchannel' and 'destination'. Depends on Asterisk version
+        destination = None
+        if 'destchannel' in event:
+          destination=event['destchannel'].lower()
+        elif 'destination' in event:
           destination=event['destination'].lower()
+        if destination is not None:
           for s in self.extensions.keys():
             log.debug("Checking destination %s against extension %s", destination, s.lower())
             if self.extensions[s]['re'].match(destination):
@@ -289,10 +294,12 @@ class CallPopHandler:
         self.statusicon.changeToolTip(appname + "\nMonitoring extensions:\n" + ', '.join(self.extensions.keys()))
         self.statusicon.changeIcon('call-start.png')
         protocol.factory.resetDelay()
-        df = protocol.registerEvent("Dial",self.onDial)
+        # change of event name from 'Dial' to 'DialBegin'
+        df = protocol.registerEvent("DialBegin",self.onDial)
+        dfold = protocol.registerEvent("Dial",self.onDial)
         self.timeouttask = task.LoopingCall(self.pinglink, protocol)
         self.timeouttask.start(self.pinginterval);
-        return df
+        #return df
 
     def pinglink(self, protocol):
         def ontimeout():
